@@ -1,0 +1,437 @@
+// src/server.ts
+
+import { Server } from '@modelcontextprotocol/sdk/server/index.js';
+import {
+  CallToolRequestSchema,
+  ListToolsRequestSchema,
+  ListResourcesRequestSchema,
+  ReadResourceRequestSchema,
+} from '@modelcontextprotocol/sdk/types.js';
+
+import { ConfigManager } from './core/config-manager.js';
+import { StateManager } from './core/state-manager.js';
+import { EventBus } from './core/event-bus.js';
+import { Logger } from './core/logger.js';
+import { CCGConfig } from './core/types.js';
+
+import { MemoryModule } from './modules/memory/index.js';
+import { GuardModule } from './modules/guard/index.js';
+
+// ═══════════════════════════════════════════════════════════════
+//                      TYPE DEFINITIONS
+// ═══════════════════════════════════════════════════════════════
+
+interface CCGModules {
+  memory: MemoryModule;
+  guard: GuardModule;
+  // TODO: Add other modules as they are implemented
+  // process: ProcessModule;
+  // resource: ResourceModule;
+  // workflow: WorkflowModule;
+  // testing: TestingModule;
+  // documents: DocumentsModule;
+}
+
+interface SessionInitResult {
+  sessionId: string;
+  status: string;
+  memory: { loaded: number };
+  message: string;
+}
+
+// ═══════════════════════════════════════════════════════════════
+//                      SERVER FACTORY
+// ═══════════════════════════════════════════════════════════════
+
+export async function createCCGServer(): Promise<Server> {
+  // Initialize core services
+  const logger = new Logger('info', 'CCG');
+  const eventBus = new EventBus();
+  const configManager = new ConfigManager(logger);
+  const stateManager = new StateManager(eventBus, logger);
+
+  logger.info('Initializing Claude Code Guardian...');
+
+  // Load configuration
+  let config: CCGConfig;
+  try {
+    config = await configManager.load();
+    logger.info('Configuration loaded successfully');
+  } catch (error) {
+    logger.warn('Using default configuration');
+    config = configManager.getDefaultConfig();
+  }
+
+  // Initialize modules
+  const modules: CCGModules = {
+    memory: new MemoryModule(config.modules.memory, eventBus, logger),
+    guard: new GuardModule(config.modules.guard, eventBus, logger),
+    // TODO: Initialize other modules
+  };
+
+  // Initialize all enabled modules
+  const initPromises: Promise<void>[] = [];
+
+  if (config.modules.memory.enabled) {
+    initPromises.push(modules.memory.initialize());
+  }
+
+  if (config.modules.guard.enabled) {
+    initPromises.push(modules.guard.initialize());
+  }
+
+  await Promise.all(initPromises);
+  logger.info('All modules initialized');
+
+  // Create MCP Server
+  const server = new Server(
+    {
+      name: 'claude-code-guardian',
+      version: '1.0.0',
+    },
+    {
+      capabilities: {
+        tools: {},
+        resources: {},
+      },
+    }
+  );
+
+  // ═══════════════════════════════════════════════════════════════
+  //                      REGISTER TOOLS
+  // ═══════════════════════════════════════════════════════════════
+
+  server.setRequestHandler(ListToolsRequestSchema, async () => {
+    const tools = [
+      // Session tools
+      ...getSessionTools(),
+      // Memory tools
+      ...modules.memory.getTools(),
+      // Guard tools
+      ...modules.guard.getTools(),
+      // TODO: Add other module tools as they are implemented
+    ];
+
+    logger.debug(`Listing ${tools.length} tools`);
+    return { tools };
+  });
+
+  server.setRequestHandler(CallToolRequestSchema, async (request) => {
+    const { name, arguments: args } = request.params;
+
+    logger.debug(`Tool call: ${name}`, args);
+
+    try {
+      // Route to appropriate handler
+      const result = await routeToolCall(
+        name,
+        args as Record<string, unknown>,
+        modules,
+        stateManager,
+        logger
+      );
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: typeof result === 'string' ? result : JSON.stringify(result, null, 2),
+          },
+        ],
+      };
+    } catch (error) {
+      logger.error(`Tool ${name} failed:`, error);
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify({
+              error: true,
+              message: error instanceof Error ? error.message : 'Unknown error',
+            }),
+          },
+        ],
+        isError: true,
+      };
+    }
+  });
+
+  // ═══════════════════════════════════════════════════════════════
+  //                      REGISTER RESOURCES
+  // ═══════════════════════════════════════════════════════════════
+
+  server.setRequestHandler(ListResourcesRequestSchema, async () => {
+    return {
+      resources: [
+        {
+          uri: 'ccg://status',
+          name: 'CCG Status',
+          description: 'Current status of Claude Code Guardian',
+          mimeType: 'application/json',
+        },
+        {
+          uri: 'ccg://memory',
+          name: 'Memory Summary',
+          description: 'Summary of stored memories',
+          mimeType: 'application/json',
+        },
+        {
+          uri: 'ccg://config',
+          name: 'Configuration',
+          description: 'Current CCG configuration',
+          mimeType: 'application/json',
+        },
+      ],
+    };
+  });
+
+  server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
+    const { uri } = request.params;
+
+    switch (uri) {
+      case 'ccg://status':
+        return {
+          contents: [
+            {
+              uri,
+              mimeType: 'application/json',
+              text: JSON.stringify(await getFullStatus(modules, stateManager), null, 2),
+            },
+          ],
+        };
+
+      case 'ccg://memory':
+        return {
+          contents: [
+            {
+              uri,
+              mimeType: 'application/json',
+              text: JSON.stringify(await modules.memory.getSummary(), null, 2),
+            },
+          ],
+        };
+
+      case 'ccg://config':
+        return {
+          contents: [
+            {
+              uri,
+              mimeType: 'application/json',
+              text: JSON.stringify(config, null, 2),
+            },
+          ],
+        };
+
+      default:
+        throw new Error(`Unknown resource: ${uri}`);
+    }
+  });
+
+  logger.info('Claude Code Guardian MCP Server ready');
+  return server;
+}
+
+// ═══════════════════════════════════════════════════════════════
+//                      SESSION TOOLS
+// ═══════════════════════════════════════════════════════════════
+
+function getSessionTools() {
+  return [
+    {
+      name: 'session_init',
+      description: 'Initialize CCG session, load memory, check status. Call this at the start of a new conversation.',
+      inputSchema: {
+        type: 'object' as const,
+        properties: {},
+        required: [] as string[],
+      },
+    },
+    {
+      name: 'session_end',
+      description: 'End the current CCG session, save all data. Call this before ending a conversation.',
+      inputSchema: {
+        type: 'object' as const,
+        properties: {
+          reason: {
+            type: 'string',
+            description: 'Reason for ending session (optional)',
+          },
+        },
+        required: [] as string[],
+      },
+    },
+    {
+      name: 'session_status',
+      description: 'Get current session status including memory count, active tasks, and resource usage.',
+      inputSchema: {
+        type: 'object' as const,
+        properties: {},
+        required: [] as string[],
+      },
+    },
+  ];
+}
+
+// ═══════════════════════════════════════════════════════════════
+//                      TOOL ROUTING
+// ═══════════════════════════════════════════════════════════════
+
+async function routeToolCall(
+  name: string,
+  args: Record<string, unknown>,
+  modules: CCGModules,
+  stateManager: StateManager,
+  logger: Logger
+): Promise<unknown> {
+  // Parse tool name: module_action
+  const [moduleName, ...actionParts] = name.split('_');
+  const action = actionParts.join('_');
+
+  switch (moduleName) {
+    case 'session':
+      return handleSessionTool(action, args, modules, stateManager, logger);
+
+    case 'memory':
+      return modules.memory.handleTool(action, args);
+
+    case 'guard':
+      return modules.guard.handleTool(action, args);
+
+    // TODO: Add other module routing as they are implemented
+    // case 'process':
+    //   return modules.process.handleTool(action, args);
+
+    default:
+      throw new Error(`Unknown module: ${moduleName}`);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+//                      SESSION HANDLERS
+// ═══════════════════════════════════════════════════════════════
+
+async function handleSessionTool(
+  action: string,
+  args: Record<string, unknown>,
+  modules: CCGModules,
+  stateManager: StateManager,
+  logger: Logger
+): Promise<unknown> {
+  switch (action) {
+    case 'init':
+      return initializeSession(modules, stateManager, logger);
+
+    case 'end':
+      return endSession(modules, stateManager, args.reason as string | undefined, logger);
+
+    case 'status':
+      return getFullStatus(modules, stateManager);
+
+    default:
+      throw new Error(`Unknown session action: ${action}`);
+  }
+}
+
+async function initializeSession(
+  modules: CCGModules,
+  stateManager: StateManager,
+  logger: Logger
+): Promise<SessionInitResult> {
+  logger.info('Initializing session...');
+
+  // Load memory
+  const memoryCount = await modules.memory.loadPersistent();
+
+  // Create session
+  const session = stateManager.createSession();
+
+  const result: SessionInitResult = {
+    sessionId: session.id,
+    status: 'ready',
+    memory: {
+      loaded: memoryCount,
+    },
+    message: formatWelcomeMessage(memoryCount),
+  };
+
+  logger.info(`Session ${session.id} initialized`);
+  return result;
+}
+
+async function endSession(
+  modules: CCGModules,
+  stateManager: StateManager,
+  reason: string | undefined,
+  logger: Logger
+): Promise<unknown> {
+  logger.info('Ending session...');
+
+  // Save memory
+  await modules.memory.savePersistent();
+
+  // Get current session
+  const session = stateManager.getCurrentSession();
+  if (!session) {
+    return {
+      success: false,
+      message: 'No active session to end',
+    };
+  }
+
+  // End session
+  stateManager.endSession();
+
+  const duration = Date.now() - session.startedAt.getTime();
+
+  return {
+    success: true,
+    sessionId: session.id,
+    duration: `${Math.round(duration / 1000)}s`,
+    reason: reason || 'normal',
+    message: 'Session ended. All data saved. See you next time!',
+  };
+}
+
+async function getFullStatus(
+  modules: CCGModules,
+  stateManager: StateManager
+): Promise<unknown> {
+  const session = stateManager.getCurrentSession();
+  const memoryStatus = modules.memory.getStatus();
+  const guardStatus = modules.guard.getStatus();
+
+  return {
+    session: session
+      ? {
+          id: session.id,
+          status: session.status,
+          startedAt: session.startedAt.toISOString(),
+          duration: `${Math.round((Date.now() - session.startedAt.getTime()) / 1000)}s`,
+        }
+      : { status: 'not_started' },
+    modules: {
+      memory: memoryStatus,
+      guard: guardStatus,
+      // TODO: Add other module statuses
+    },
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════
+//                      HELPERS
+// ═══════════════════════════════════════════════════════════════
+
+function formatWelcomeMessage(memoryCount: number): string {
+  const lines = [
+    'Claude Code Guardian Ready',
+    '',
+    `Memory: ${memoryCount} items loaded`,
+  ];
+
+  if (memoryCount === 0) {
+    lines.push('', 'Tip: Use memory_store to save important decisions and facts');
+  }
+
+  return lines.join('\n');
+}

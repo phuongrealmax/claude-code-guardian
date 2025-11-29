@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir:*)",
+      "Bash(git init:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nfeat: Initial project setup with core infrastructure and modules\n\nGIAI ĐOẠN 0-3 hoàn thành:\n- Project structure và configuration (tsconfig.json, package.json)\n- Core infrastructure (EventBus, Logger, ConfigManager, StateManager)\n- Memory Module - persistent memory với SQLite\n- Guard Module - code validation với các rules\n- Process Module - port và process management\n\nFiles:\n- src/core/: types.ts, event-bus.ts, logger.ts, config-manager.ts, state-manager.ts\n- src/modules/memory/: service, tools, types, index\n- src/modules/guard/: service, tools, types, rules/, index  \n- src/modules/process/: service, tools, types, index\n- docs/checklist.md: Master implementation checklist\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
