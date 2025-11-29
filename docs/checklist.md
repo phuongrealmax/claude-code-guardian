@@ -108,21 +108,36 @@ Tài liệu này dùng để theo dõi tiến độ triển khai dự án Claude
 
 ## GIAI ĐOẠN 5: HOOKS SYSTEM (Bộ não điều khiển)
 *Mục tiêu: Kết nối logic để tự động kích hoạt các tính năng bảo vệ.*
+*Cập nhật:* 2025-11-29
 
-- [ ] **Task 5.1**: **Hooks Config** - Template cấu hình `hooks.json`
+- [x] **Task 5.1**: **Hooks Config** - Template cấu hình `hooks.json`
     - *Tham khảo:* `implementation_3.md` > Section 2: HOOKS CONFIGURATION
-- [ ] **Task 5.2**: **Hook Types & Base** - Interfaces và Abstract Class
+    - *Hoàn thành:* 2025-11-29
+    - *Files:* `templates/hooks.template.json`
+- [x] **Task 5.2**: **Hook Types & Base** - Interfaces và Abstract Class
     - *Tham khảo:* `implementation_3.md` > Section 3 & 4
-- [ ] **Task 5.3**: **Session Start Hook** - Logic bắt đầu phiên
+    - *Hoàn thành:* 2025-11-29
+    - *Files:* `src/hooks/types.ts`, `src/hooks/hook-handler.ts`
+- [x] **Task 5.3**: **Session Start Hook** - Logic bắt đầu phiên
     - *Tham khảo:* `implementation_3.md` > Section 5: SESSION START HOOK
-- [ ] **Task 5.4**: **Pre-Tool Call Hook** - Logic validate hành động
+    - *Hoàn thành:* 2025-11-29
+    - *Files:* `src/hooks/session-start.hook.ts`
+- [x] **Task 5.4**: **Pre-Tool Call Hook** - Logic validate hành động
     - *Tham khảo:* `implementation_3.md` > Section 6: PRE-TOOL CALL HOOK
-- [ ] **Task 5.5**: **Post-Tool Call Hook** - Logic kiểm tra kết quả
+    - *Hoàn thành:* 2025-11-29
+    - *Files:* `src/hooks/pre-tool-call.hook.ts`
+- [x] **Task 5.5**: **Post-Tool Call Hook** - Logic kiểm tra kết quả
     - *Tham khảo:* `implementation_3.md` > Section 7: POST-TOOL CALL HOOK
-- [ ] **Task 5.6**: **Session End Hook** - Logic dọn dẹp và lưu trữ
+    - *Hoàn thành:* 2025-11-29
+    - *Files:* `src/hooks/post-tool-call.hook.ts`
+- [x] **Task 5.6**: **Session End Hook** - Logic dọn dẹp và lưu trữ
     - *Tham khảo:* `implementation_3.md` > Section 8: SESSION END HOOK
-- [ ] **Task 5.7**: **Hook Router** - Điều hướng request tới Handler
+    - *Hoàn thành:* 2025-11-29
+    - *Files:* `src/hooks/session-end.hook.ts`
+- [x] **Task 5.7**: **Hook Router** - Điều hướng request tới Handler
     - *Tham khảo:* `implementation_3.md` > Section 9: HOOK INDEX & EXPORTS
+    - *Hoàn thành:* 2025-11-29
+    - *Files:* `src/hooks/index.ts`
 
 ---
 
@@ -173,3 +188,7 @@ Yêu cầu:
 
 (Lưu ý: File tài liệu mới nhất là 'templates_implementation.md' cho Giai đoạn 7)
 ...
+
+## GIAI ĐOẠN 5: HOOKS SYSTEM (Updated: 2025-11-29)
+
+Phase 5 (Hooks System) completed on 2025-11-29. All 7 tasks implemented: hooks.template.json, types.ts, hook-handler.ts, session-start.hook.ts, pre-tool-call.hook.ts, post-tool-call.hook.ts, session-end.hook.ts, index.ts

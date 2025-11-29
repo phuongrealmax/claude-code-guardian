@@ -1,0 +1,34 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "type": "command",
+        "command": "npx @anthropic-community/claude-code-guardian hook session-start"
+      }
+    ],
+    "PreToolCall": [
+      {
+        "type": "command",
+        "command": "npx @anthropic-community/claude-code-guardian hook pre-tool $TOOL_NAME",
+        "filter": {
+          "tools": ["write_file", "edit_file", "bash", "create_file"]
+        }
+      }
+    ],
+    "PostToolCall": [
+      {
+        "type": "command",
+        "command": "npx @anthropic-community/claude-code-guardian hook post-tool $TOOL_NAME",
+        "filter": {
+          "tools": ["write_file", "edit_file", "create_file"]
+        }
+      }
+    ],
+    "Stop": [
+      {
+        "type": "command",
+        "command": "npx @anthropic-community/claude-code-guardian hook session-end"
+      }
+    ]
+  }
+}
