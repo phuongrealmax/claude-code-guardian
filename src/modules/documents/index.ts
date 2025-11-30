@@ -77,6 +77,34 @@ export class DocumentsModule {
   getStatus() {
     return this.service.getStatus();
   }
+
+  async shutdown(): Promise<void> {
+    // Cleanup logic if needed
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  //                      WRAPPER METHODS
+  // ═══════════════════════════════════════════════════════════════
+
+  async registerDocument(path: string) {
+    return this.service.registerDocument(path);
+  }
+
+  async scanDocuments() {
+    return this.service.scanDocuments();
+  }
+
+  async updateDocument(path: string, content: string) {
+    return this.service.updateDocument(path, content);
+  }
+
+  async searchDocuments(query: string) {
+    return this.service.searchDocuments(query);
+  }
+
+  getAllDocuments() {
+    return this.service.getAllDocuments();
+  }
 }
 
 export { DocumentsService } from './documents.service.js';

@@ -66,6 +66,30 @@ export class ResourceModule {
         throw new Error(`Unknown resource tool: ${toolName}`);
     }
   }
+
+  async shutdown(): Promise<void> {
+    // Cleanup logic if needed
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  //                      WRAPPER METHODS
+  // ═══════════════════════════════════════════════════════════════
+
+  getStatus() {
+    return this.service.getStatus();
+  }
+
+  async createCheckpoint(params: { name?: string; reason: CheckpointReason; metadata?: Record<string, unknown> }) {
+    return this.service.createCheckpoint(params);
+  }
+
+  updateTokenUsage(used: number, estimated?: number) {
+    return this.service.updateTokenUsage(used, estimated);
+  }
+
+  listCheckpoints() {
+    return this.service.listCheckpoints();
+  }
 }
 
 export { ResourceService } from './resource.service.js';

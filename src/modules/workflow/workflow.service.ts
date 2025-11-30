@@ -111,8 +111,9 @@ export class WorkflowService {
 
     this.eventBus.emit({
       type: 'task:start',
-      task,
       timestamp: new Date(),
+      data: { task },
+      source: 'WorkflowService',
     });
 
     this.logger.info(`Task started: ${task.name}`);
@@ -135,8 +136,9 @@ export class WorkflowService {
 
     this.eventBus.emit({
       type: 'task:progress',
-      task,
       timestamp: new Date(),
+      data: { task },
+      source: 'WorkflowService',
     });
 
     return task;
@@ -160,8 +162,9 @@ export class WorkflowService {
 
     this.eventBus.emit({
       type: 'task:complete',
-      task,
       timestamp: new Date(),
+      data: { task },
+      source: 'WorkflowService',
     });
 
     this.logger.info(`Task completed: ${task.name}`);
@@ -213,8 +216,9 @@ export class WorkflowService {
 
     this.eventBus.emit({
       type: 'task:fail',
-      task,
       timestamp: new Date(),
+      data: { task },
+      source: 'WorkflowService',
     });
 
     return task;

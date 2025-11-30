@@ -102,6 +102,46 @@ export class WorkflowModule {
   async saveTasks() {
     return this.service.saveTasks();
   }
+
+  async shutdown(): Promise<void> {
+    await this.service.saveTasks();
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  //                      WRAPPER METHODS
+  // ═══════════════════════════════════════════════════════════════
+
+  getCurrentTask() {
+    return this.service.getCurrentTask();
+  }
+
+  getTasks(filter?: Parameters<typeof this.service.getTasks>[0]) {
+    return this.service.getTasks(filter);
+  }
+
+  async updateTask(taskId: string, params: { progress?: number; status?: 'pending' | 'in_progress' | 'paused' | 'blocked' | 'completed' | 'failed' }) {
+    return this.service.updateTask(taskId, params);
+  }
+
+  async pauseTask(taskId: string) {
+    return this.service.pauseTask(taskId);
+  }
+
+  async addAffectedFile(taskId: string, filePath: string) {
+    return this.service.addAffectedFile(taskId, filePath);
+  }
+
+  async createTask(params: Parameters<typeof this.service.createTask>[0]) {
+    return this.service.createTask(params);
+  }
+
+  async startTask(taskId: string) {
+    return this.service.startTask(taskId);
+  }
+
+  async completeTask(taskId: string, actualTokens?: number) {
+    return this.service.completeTask(taskId, actualTokens);
+  }
 }
 
 export { WorkflowService } from './workflow.service.js';

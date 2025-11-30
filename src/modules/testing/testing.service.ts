@@ -64,8 +64,9 @@ export class TestingService {
 
       this.eventBus.emit({
         type: results.failed > 0 ? 'test:fail' : 'test:complete',
-        results,
         timestamp: new Date(),
+        data: { results },
+        source: 'TestingService',
       });
 
       return results;
@@ -91,8 +92,9 @@ export class TestingService {
 
       this.eventBus.emit({
         type: 'test:fail',
-        results,
         timestamp: new Date(),
+        data: { results },
+        source: 'TestingService',
       });
 
       return results;

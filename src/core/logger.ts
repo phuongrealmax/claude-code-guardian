@@ -70,12 +70,12 @@ export class Logger {
         format: 'pretty',
       };
     } else {
-      this.config = {
+      const defaults = {
         console: true,
         colors: true,
-        format: 'pretty',
-        ...levelOrConfig,
+        format: 'pretty' as const,
       };
+      this.config = { ...defaults, ...levelOrConfig };
     }
 
     this.context = context;

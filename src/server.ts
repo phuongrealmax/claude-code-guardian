@@ -16,6 +16,12 @@ import { CCGConfig } from './core/types.js';
 
 import { MemoryModule } from './modules/memory/index.js';
 import { GuardModule } from './modules/guard/index.js';
+import { WorkflowModule } from './modules/workflow/index.js';
+import { ProcessModule } from './modules/process/index.js';
+import { ResourceModule } from './modules/resource/index.js';
+import { TestingModule } from './modules/testing/index.js';
+import { DocumentsModule } from './modules/documents/index.js';
+import { AgentsModule } from './modules/agents/index.js';
 
 // ═══════════════════════════════════════════════════════════════
 //                      TYPE DEFINITIONS
@@ -24,12 +30,12 @@ import { GuardModule } from './modules/guard/index.js';
 interface CCGModules {
   memory: MemoryModule;
   guard: GuardModule;
-  // TODO: Add other modules as they are implemented
-  // process: ProcessModule;
-  // resource: ResourceModule;
-  // workflow: WorkflowModule;
-  // testing: TestingModule;
-  // documents: DocumentsModule;
+  workflow: WorkflowModule;
+  process: ProcessModule;
+  resource: ResourceModule;
+  testing: TestingModule;
+  documents: DocumentsModule;
+  agents: AgentsModule;
 }
 
 interface SessionInitResult {
@@ -44,11 +50,17 @@ interface SessionInitResult {
 // ═══════════════════════════════════════════════════════════════
 
 export async function createCCGServer(): Promise<Server> {
+  // Determine project root from environment or current working directory
+  const projectRoot = process.env.CCG_PROJECT_ROOT || process.cwd();
+  const logLevel = (process.env.CCG_LOG_LEVEL as 'debug' | 'info' | 'warn' | 'error') || 'info';
+
   // Initialize core services
-  const logger = new Logger('info', 'CCG');
+  const logger = new Logger(logLevel, 'CCG');
   const eventBus = new EventBus();
-  const configManager = new ConfigManager(logger);
-  const stateManager = new StateManager(eventBus, logger);
+  const configManager = new ConfigManager(projectRoot, logger, eventBus);
+  const stateManager = new StateManager(projectRoot, logger, eventBus);
+
+  logger.debug(`Project root: ${projectRoot}`);
 
   logger.info('Initializing Claude Code Guardian...');
 
@@ -62,11 +74,34 @@ export async function createCCGServer(): Promise<Server> {
     config = configManager.getDefaultConfig();
   }
 
+  // Resolve relative paths in config to absolute
+  const memoryConfig = {
+    ...config.modules.memory,
+    persistPath: configManager.resolvePath(config.modules.memory.persistPath),
+  };
+
+  logger.debug(`Memory DB path: ${memoryConfig.persistPath}`);
+
+  // Default agents config
+  const defaultAgentsConfig = {
+    enabled: true,
+    agentsFilePath: 'AGENTS.md',
+    agentsDir: '.claude/agents',
+    autoReload: true,
+    enableCoordination: true,
+  };
+  const agentsConfig = config.modules.agents || defaultAgentsConfig;
+
   // Initialize modules
   const modules: CCGModules = {
-    memory: new MemoryModule(config.modules.memory, eventBus, logger),
+    memory: new MemoryModule(memoryConfig, eventBus, logger),
     guard: new GuardModule(config.modules.guard, eventBus, logger),
-    // TODO: Initialize other modules
+    workflow: new WorkflowModule(config.modules.workflow, eventBus, logger, projectRoot),
+    process: new ProcessModule(config.modules.process, eventBus, logger),
+    resource: new ResourceModule(config.modules.resource, eventBus, logger, projectRoot),
+    testing: new TestingModule(config.modules.testing, eventBus, logger, projectRoot),
+    documents: new DocumentsModule(config.modules.documents, eventBus, logger, projectRoot),
+    agents: new AgentsModule(agentsConfig, eventBus, logger, projectRoot),
   };
 
   // Initialize all enabled modules
@@ -78,6 +113,30 @@ export async function createCCGServer(): Promise<Server> {
 
   if (config.modules.guard.enabled) {
     initPromises.push(modules.guard.initialize());
+  }
+
+  if (config.modules.workflow.enabled) {
+    initPromises.push(modules.workflow.initialize());
+  }
+
+  if (config.modules.process.enabled) {
+    initPromises.push(modules.process.initialize());
+  }
+
+  if (config.modules.resource.enabled) {
+    initPromises.push(modules.resource.initialize());
+  }
+
+  if (config.modules.testing.enabled) {
+    initPromises.push(modules.testing.initialize());
+  }
+
+  if (config.modules.documents.enabled) {
+    initPromises.push(modules.documents.initialize());
+  }
+
+  if (agentsConfig.enabled) {
+    initPromises.push(modules.agents.initialize());
   }
 
   await Promise.all(initPromises);
@@ -109,7 +168,18 @@ export async function createCCGServer(): Promise<Server> {
       ...modules.memory.getTools(),
       // Guard tools
       ...modules.guard.getTools(),
-      // TODO: Add other module tools as they are implemented
+      // Workflow tools
+      ...modules.workflow.getTools(),
+      // Process tools
+      ...modules.process.getTools(),
+      // Resource tools
+      ...modules.resource.getTools(),
+      // Testing tools
+      ...modules.testing.getTools(),
+      // Documents tools
+      ...modules.documents.getTools(),
+      // Agents tools
+      ...modules.agents.getTools(),
     ];
 
     logger.debug(`Listing ${tools.length} tools`);
@@ -298,9 +368,23 @@ async function routeToolCall(
     case 'guard':
       return modules.guard.handleTool(action, args);
 
-    // TODO: Add other module routing as they are implemented
-    // case 'process':
-    //   return modules.process.handleTool(action, args);
+    case 'workflow':
+      return modules.workflow.handleTool(name, args);
+
+    case 'process':
+      return modules.process.handleTool(action, args);
+
+    case 'resource':
+      return modules.resource.handleTool(name, args);
+
+    case 'testing':
+      return modules.testing.handleTool(name, args);
+
+    case 'documents':
+      return modules.documents.handleTool(name, args);
+
+    case 'agents':
+      return modules.agents.handleTool(action, args);
 
     default:
       throw new Error(`Unknown module: ${moduleName}`);
@@ -340,8 +424,10 @@ async function initializeSession(
 ): Promise<SessionInitResult> {
   logger.info('Initializing session...');
 
-  // Load memory
+  // Load memory and pending tasks
   const memoryCount = await modules.memory.loadPersistent();
+  const pendingTasksList = await modules.workflow.loadPendingTasks();
+  const pendingTasks = pendingTasksList?.length || 0;
 
   // Create session
   const session = stateManager.createSession();
@@ -352,7 +438,7 @@ async function initializeSession(
     memory: {
       loaded: memoryCount,
     },
-    message: formatWelcomeMessage(memoryCount),
+    message: formatWelcomeMessage(memoryCount, pendingTasks),
   };
 
   logger.info(`Session ${session.id} initialized`);
@@ -367,11 +453,12 @@ async function endSession(
 ): Promise<unknown> {
   logger.info('Ending session...');
 
-  // Save memory
+  // Save memory and workflow
   await modules.memory.savePersistent();
+  await modules.workflow.saveTasks();
 
   // Get current session
-  const session = stateManager.getCurrentSession();
+  const session = stateManager.getSession();
   if (!session) {
     return {
       success: false,
@@ -397,9 +484,10 @@ async function getFullStatus(
   modules: CCGModules,
   stateManager: StateManager
 ): Promise<unknown> {
-  const session = stateManager.getCurrentSession();
+  const session = stateManager.getSession();
   const memoryStatus = modules.memory.getStatus();
   const guardStatus = modules.guard.getStatus();
+  const workflowStatus = modules.workflow.getStatus();
 
   return {
     session: session
@@ -413,7 +501,7 @@ async function getFullStatus(
     modules: {
       memory: memoryStatus,
       guard: guardStatus,
-      // TODO: Add other module statuses
+      workflow: workflowStatus,
     },
   };
 }
@@ -422,15 +510,18 @@ async function getFullStatus(
 //                      HELPERS
 // ═══════════════════════════════════════════════════════════════
 
-function formatWelcomeMessage(memoryCount: number): string {
+function formatWelcomeMessage(memoryCount: number, pendingTasks: number = 0): string {
   const lines = [
     'Claude Code Guardian Ready',
     '',
     `Memory: ${memoryCount} items loaded`,
+    `Tasks: ${pendingTasks} pending`,
   ];
 
-  if (memoryCount === 0) {
-    lines.push('', 'Tip: Use memory_store to save important decisions and facts');
+  if (memoryCount === 0 && pendingTasks === 0) {
+    lines.push('', 'Tip: Use memory_store to save decisions, workflow_task_create to track tasks');
+  } else if (pendingTasks > 0) {
+    lines.push('', 'Use workflow_task_list to see pending tasks');
   }
 
   return lines.join('\n');

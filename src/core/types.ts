@@ -37,6 +37,7 @@ export interface ModulesConfig {
   testing: TestingModuleConfig;
   documents: DocumentsModuleConfig;
   workflow: WorkflowModuleConfig;
+  agents: AgentsModuleConfig;
 }
 
 export interface MemoryModuleConfig {
@@ -59,6 +60,8 @@ export interface GuardRules {
   blockEmptyCatch: boolean;
   blockEmojiInCode: boolean;
   blockSwallowedExceptions: boolean;
+  blockSqlInjection?: boolean;        // Default: true
+  blockHardcodedSecrets?: boolean;    // Default: true
   customRules?: CustomRule[];
 }
 
@@ -124,6 +127,15 @@ export interface WorkflowModuleConfig {
   autoTrackTasks: boolean;
   requireTaskForLargeChanges: boolean;
   largeChangeThreshold: number;
+}
+
+export interface AgentsModuleConfig {
+  enabled: boolean;
+  agentsFilePath: string;
+  agentsDir: string;
+  autoReload: boolean;
+  defaultAgent?: string;
+  enableCoordination: boolean;
 }
 
 // ═══════════════════════════════════════════════════════════════

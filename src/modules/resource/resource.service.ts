@@ -49,8 +49,17 @@ export class ResourceService {
     await this.loadCheckpoints();
 
     // Subscribe to events for auto-checkpoint
-    this.eventBus.on('task:complete', () => this.onTaskComplete());
-    this.eventBus.on('session:end', () => this.onSessionEnd());
+    // Wrap async handlers with error handling to prevent unhandled rejections
+    this.eventBus.on('task:complete', () => {
+      this.onTaskComplete().catch(err => {
+        this.logger.error('Failed to handle task:complete event:', err);
+      });
+    });
+    this.eventBus.on('session:end', () => {
+      this.onSessionEnd().catch(err => {
+        this.logger.error('Failed to handle session:end event:', err);
+      });
+    });
 
     this.logger.info(`Resource module initialized with ${this.checkpoints.length} checkpoints`);
   }
@@ -130,8 +139,9 @@ export class ResourceService {
         // Emit event
         this.eventBus.emit({
           type: 'resource:checkpoint',
-          usage: this.tokenUsage,
           timestamp: new Date(),
+          data: { usage: this.tokenUsage },
+          source: 'ResourceService',
         });
 
         break;
@@ -142,14 +152,16 @@ export class ResourceService {
     if (percentage >= this.config.pauseThreshold) {
       this.eventBus.emit({
         type: 'resource:critical',
-        usage: this.tokenUsage,
         timestamp: new Date(),
+        data: { usage: this.tokenUsage },
+        source: 'ResourceService',
       });
     } else if (percentage >= this.config.warningThreshold) {
       this.eventBus.emit({
         type: 'resource:warning',
-        usage: this.tokenUsage,
         timestamp: new Date(),
+        data: { usage: this.tokenUsage },
+        source: 'ResourceService',
       });
     }
   }

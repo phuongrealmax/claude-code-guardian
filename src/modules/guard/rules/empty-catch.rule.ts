@@ -44,6 +44,8 @@ export class EmptyCatchRule implements IGuardRule {
 
   validate(code: string, filename: string): ValidationIssue[] {
     const issues: ValidationIssue[] = [];
+
+    // Method 1: Find catch blocks with brace matching
     const catchBlocks = this.findCatchBlocks(code);
 
     for (const block of catchBlocks) {
@@ -67,9 +69,102 @@ export class EmptyCatchRule implements IGuardRule {
       }
     }
 
+    // Method 2: Quick regex scan for common patterns
+    const quickScanIssues = this.quickScanEmptyCatch(code, filename);
+
+    // Merge issues, avoiding duplicates on same line
+    const existingLines = new Set(issues.map(i => i.location?.line));
+    for (const issue of quickScanIssues) {
+      if (!existingLines.has(issue.location?.line)) {
+        issues.push(issue);
+      }
+    }
+
     // Also check for Promise.catch with empty handler
     const promiseCatches = this.findPromiseCatches(code, filename);
     issues.push(...promiseCatches);
+
+    return issues;
+  }
+
+  /**
+   * Quick regex scan for obvious empty catch patterns
+   */
+  private quickScanEmptyCatch(code: string, filename: string): ValidationIssue[] {
+    const issues: ValidationIssue[] = [];
+    const lines = code.split('\n');
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const nextLine = lines[i + 1] || '';
+      const nextNextLine = lines[i + 2] || '';
+
+      // Pattern 1: catch (e) { } on same line
+      if (/catch\s*\([^)]*\)\s*{\s*}/.test(line)) {
+        issues.push({
+          rule: this.name,
+          severity: 'error',
+          message: 'Empty catch block swallows exception silently',
+          location: { file: filename, line: i + 1, snippet: line.trim() },
+          suggestion: 'Log the error or handle it appropriately',
+          autoFixable: false,
+        });
+        continue;
+      }
+
+      // Pattern 2: catch (e) { // comment only }
+      if (/catch\s*\([^)]*\)\s*{\s*$/.test(line)) {
+        // Check if next lines only contain comments until closing brace
+        let j = i + 1;
+        let onlyComments = true;
+        let foundCloseBrace = false;
+
+        while (j < lines.length && j < i + 10) {
+          const checkLine = lines[j].trim();
+
+          if (checkLine === '}') {
+            foundCloseBrace = true;
+            break;
+          }
+
+          // Check if line has actual code (not just comments)
+          const withoutComments = checkLine
+            .replace(/\/\/.*$/, '')
+            .replace(/\/\*.*?\*\//g, '')
+            .trim();
+
+          if (withoutComments && withoutComments !== '}') {
+            // Check if it's actual error handling
+            const hasHandling = this.validHandlingPatterns.some(p => p.test(checkLine));
+            if (hasHandling) {
+              onlyComments = false;
+              break;
+            }
+          }
+          j++;
+        }
+
+        if (foundCloseBrace && onlyComments) {
+          // Check if intentional
+          const blockContent = lines.slice(i, j + 1).join('\n');
+          if (!this.isIntentionallyEmpty(blockContent, lines[i - 1] || '')) {
+            issues.push({
+              rule: this.name,
+              severity: 'error',
+              message: 'Catch block only contains comments - exception is swallowed',
+              location: {
+                file: filename,
+                line: i + 1,
+                endLine: j + 1,
+                snippet: line.trim()
+              },
+              suggestion: 'Add proper error handling or at least log the error',
+              autoFixable: false,
+            });
+          }
+        }
+      }
+    }
 
     return issues;
   }

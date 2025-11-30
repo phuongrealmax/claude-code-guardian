@@ -48,15 +48,23 @@ function setupGracefulShutdown(): void {
   process.on('SIGINT', () => shutdown('SIGINT'));
   process.on('SIGTERM', () => shutdown('SIGTERM'));
 
-  // Handle uncaught exceptions
+  // Handle uncaught exceptions - log but don't crash for recoverable errors
   process.on('uncaughtException', (error) => {
     console.error('Uncaught exception:', error);
-    process.exit(1);
+    // Only exit for truly fatal errors, otherwise log and continue
+    if (error.message?.includes('FATAL') || error.message?.includes('out of memory')) {
+      process.exit(1);
+    }
+    // Log stack trace for debugging
+    console.error('Stack:', error.stack);
   });
 
+  // Handle unhandled rejections - log but keep server running
   process.on('unhandledRejection', (reason, promise) => {
-    console.error('Unhandled rejection at:', promise, 'reason:', reason);
-    process.exit(1);
+    console.error('Unhandled rejection at:', promise);
+    console.error('Reason:', reason);
+    // Don't exit - log the error and let the server continue
+    // This prevents crashes from non-critical async errors
   });
 }
 

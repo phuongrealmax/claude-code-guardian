@@ -264,6 +264,20 @@ export class MemoryModule {
   async loadSnapshot(memories: import('../../core/types.js').Memory[]): Promise<void> {
     return this.service.loadSnapshot(memories);
   }
+
+  /**
+   * Store a memory (wrapper for service.store)
+   */
+  async store(params: StoreMemoryParams) {
+    return this.service.store(params);
+  }
+
+  /**
+   * Recall memories (wrapper for service.recall)
+   */
+  async recall(params: RecallMemoryParams) {
+    return this.service.recall(params);
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -273,3 +287,19 @@ export class MemoryModule {
 export { MemoryService } from './memory.service.js';
 export * from './memory.types.js';
 export * from './memory.tools.js';
+
+// Project-Scoped Memory
+export {
+  ProjectMemoryService,
+  createProjectMemoryService,
+  DOMAIN_PRINCIPLES,
+} from './project-memory.js';
+export type {
+  ProjectMemory,
+  ProjectFacts,
+  ProjectDomain,
+  BusinessPrinciples,
+  BusinessRule,
+  ApiConventions,
+  ReportConfig,
+} from './project-memory.js';

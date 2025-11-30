@@ -257,6 +257,13 @@ export class ProcessModule {
   }
 
   /**
+   * Get running processes (alias for checkRunningProcesses)
+   */
+  async getRunningProcesses() {
+    return this.service.getRunningProcesses();
+  }
+
+  /**
    * Kill process on port (direct access)
    */
   async killProcessOnPort(port: number, force?: boolean): Promise<KillResult> {

@@ -42,7 +42,13 @@ export type CCGEventType =
   // Document events
   | 'document:create'
   | 'document:update'
-  | 'document:register';
+  | 'document:register'
+  // Agent events
+  | 'agent:registered'
+  | 'agent:updated'
+  | 'agent:removed'
+  | 'agent:selected'
+  | 'agent:coordination:created';
 
 export interface CCGEvent<T = unknown> {
   type: CCGEventType;
@@ -79,6 +85,7 @@ export class EventBus {
 
   /**
    * Emit an event to all subscribers
+   * Wrapped with error boundary to prevent crashes from handler errors
    */
   emit<T = unknown>(event: CCGEvent<T>): void {
     // Ensure timestamp
@@ -89,11 +96,19 @@ export class EventBus {
     // Add to history
     this.addToHistory(event);
 
-    // Emit to specific type listeners
-    this.emitter.emit(event.type, event);
+    // Emit to specific type listeners with error boundary
+    try {
+      this.emitter.emit(event.type, event);
+    } catch (error) {
+      console.error(`Error in event handler for ${event.type}:`, error);
+    }
 
-    // Emit to wildcard listeners
-    this.emitter.emit('*', event);
+    // Emit to wildcard listeners with error boundary
+    try {
+      this.emitter.emit('*', event);
+    } catch (error) {
+      console.error(`Error in wildcard event handler for ${event.type}:`, error);
+    }
   }
 
   /**

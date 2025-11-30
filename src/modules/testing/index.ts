@@ -84,6 +84,18 @@ export class TestingModule {
   getStatus() {
     return this.service.getStatus();
   }
+
+  // ═══════════════════════════════════════════════════════════════
+  //                      WRAPPER METHODS
+  // ═══════════════════════════════════════════════════════════════
+
+  async runTests(options?: { files?: string[]; grep?: string; coverage?: boolean; timeout?: number }) {
+    return this.service.runTests(options);
+  }
+
+  async runAffectedTests(files: string[]) {
+    return this.service.runAffectedTests(files);
+  }
 }
 
 export { TestingService } from './testing.service.js';

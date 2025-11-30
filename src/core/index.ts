@@ -2,14 +2,19 @@
 
 export * from './types.js';
 export * from './event-bus.js';
-export * from './logger.js';
+// Logger - explicit exports to avoid truncate conflict with string-utils
+export {
+  Logger,
+  LogLevel,
+  LogEntry,
+  LoggerConfig,
+  getGlobalLogger,
+  setGlobalLogger,
+  createModuleLogger,
+  formatError,
+} from './logger.js';
 export * from './config-manager.js';
 export * from './state-manager.js';
 
+// Utils (includes truncate from string-utils)
 export * from './utils/index.js';
-
-// Re-export commonly used items
-export { EventBus, getGlobalEventBus, CCGEvent, CCGEventType } from './event-bus.js';
-export { Logger, LogLevel, getGlobalLogger, createModuleLogger } from './logger.js';
-export { ConfigManager, DEFAULT_CONFIG } from './config-manager.js';
-export { StateManager, getGlobalStateManager, Session, SessionStatus } from './state-manager.js';

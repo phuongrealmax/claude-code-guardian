@@ -1,7 +1,7 @@
 // src/core/config-manager.ts
 
 import { readFileSync, writeFileSync, existsSync, watchFile, unwatchFile } from 'fs';
-import { join, dirname } from 'path';
+import { join, dirname, isAbsolute, resolve } from 'path';
 import { mkdirSync } from 'fs';
 import { CCGConfig, ModulesConfig } from './types.js';
 import { Logger } from './logger.js';
@@ -35,6 +35,8 @@ export const DEFAULT_CONFIG: CCGConfig = {
         blockEmptyCatch: true,
         blockEmojiInCode: true,
         blockSwallowedExceptions: true,
+        blockSqlInjection: true,
+        blockHardcodedSecrets: true,
       },
     },
     process: {
@@ -92,6 +94,13 @@ export const DEFAULT_CONFIG: CCGConfig = {
       requireTaskForLargeChanges: false,
       largeChangeThreshold: 100,
     },
+    agents: {
+      enabled: true,
+      agentsFilePath: 'AGENTS.md',
+      agentsDir: '.claude/agents',
+      autoReload: true,
+      enableCoordination: true,
+    },
   },
   notifications: {
     showInline: true,
@@ -118,6 +127,7 @@ export const DEFAULT_CONFIG: CCGConfig = {
 export class ConfigManager {
   private config: CCGConfig;
   private configPath: string;
+  private projectRoot: string;
   private logger: Logger;
   private eventBus?: EventBus;
   private watchers: Set<string> = new Set();
@@ -128,10 +138,29 @@ export class ConfigManager {
     logger?: Logger,
     eventBus?: EventBus
   ) {
-    this.configPath = join(projectRoot, '.ccg', 'config.json');
+    // Ensure project root is absolute path
+    this.projectRoot = isAbsolute(projectRoot) ? projectRoot : resolve(projectRoot);
+    this.configPath = join(this.projectRoot, '.ccg', 'config.json');
     this.config = { ...DEFAULT_CONFIG };
     this.logger = logger || new Logger('info', 'ConfigManager');
     this.eventBus = eventBus;
+  }
+
+  /**
+   * Get the project root directory
+   */
+  getProjectRoot(): string {
+    return this.projectRoot;
+  }
+
+  /**
+   * Resolve a relative path to absolute using project root
+   */
+  resolvePath(relativePath: string): string {
+    if (isAbsolute(relativePath)) {
+      return relativePath;
+    }
+    return join(this.projectRoot, relativePath);
   }
 
   /**
@@ -326,6 +355,13 @@ export class ConfigManager {
     this.config = { ...DEFAULT_CONFIG };
     this.notifyChange();
     this.logger.info('Configuration reset to defaults');
+  }
+
+  /**
+   * Get default configuration
+   */
+  getDefaultConfig(): CCGConfig {
+    return { ...DEFAULT_CONFIG };
   }
 
   /**

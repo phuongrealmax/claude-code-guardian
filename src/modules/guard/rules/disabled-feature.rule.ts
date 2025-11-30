@@ -24,6 +24,10 @@ export class DisabledFeatureRule implements IGuardRule {
       message: 'Code marked as temporarily disabled',
     },
     {
+      pattern: /\/\/\s*(?:TODO|FIXME):\s*(?:re-?enable|uncomment|restore)/i,
+      message: 'Code marked for re-enabling later',
+    },
+    {
       pattern: /if\s*\(\s*false\s*\)/,
       message: 'Code disabled with if(false)',
     },
@@ -38,6 +42,10 @@ export class DisabledFeatureRule implements IGuardRule {
     {
       pattern: /\/\*\s*(?:DISABLED|SKIP|TEMP)/i,
       message: 'Block comment marking disabled code',
+    },
+    {
+      pattern: /\/\/\s*(?:temporarily|temp)\s+(?:disabled|removed|commented)/i,
+      message: 'Code temporarily disabled',
     },
   ];
 
@@ -94,6 +102,68 @@ export class DisabledFeatureRule implements IGuardRule {
     // Check for large commented-out blocks
     const commentedBlocks = this.findLargeCommentedBlocks(code, filename);
     issues.push(...commentedBlocks);
+
+    // Check for commented-out critical code (if/validation statements)
+    const commentedCritical = this.findCommentedCriticalCode(code, filename);
+    issues.push(...commentedCritical);
+
+    return issues;
+  }
+
+  /**
+   * Find commented-out code that contains critical validation logic
+   */
+  private findCommentedCriticalCode(code: string, filename: string): ValidationIssue[] {
+    const issues: ValidationIssue[] = [];
+    const lines = code.split('\n');
+
+    // Patterns for commented-out critical code
+    const criticalCodePatterns = [
+      { pattern: /\/\/\s*if\s*\(\s*!?\s*validate/i, message: 'Commented-out validation check' },
+      { pattern: /\/\/\s*if\s*\(\s*!?\s*auth/i, message: 'Commented-out authentication check' },
+      { pattern: /\/\/\s*if\s*\(\s*!?\s*check/i, message: 'Commented-out security check' },
+      { pattern: /\/\/\s*if\s*\(\s*!?\s*verify/i, message: 'Commented-out verification check' },
+      { pattern: /\/\/\s*if\s*\(\s*!?\s*isValid/i, message: 'Commented-out validity check' },
+      { pattern: /\/\/\s*if\s*\(\s*!?\s*has(?:Permission|Access|Role)/i, message: 'Commented-out permission check' },
+      { pattern: /\/\/\s*throw\s+(?:new\s+)?(?:Error|Exception)/i, message: 'Commented-out error throw' },
+      { pattern: /\/\/\s*return\s+(?:false|null|undefined)\s*;?\s*\/\/.*(?:invalid|error|fail)/i, message: 'Commented-out error return' },
+    ];
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+
+      for (const { pattern, message } of criticalCodePatterns) {
+        if (pattern.test(line)) {
+          // Check if next lines are also commented (part of same block)
+          let endLine = i;
+          for (let j = i + 1; j < lines.length && j < i + 5; j++) {
+            if (lines[j].trim().startsWith('//')) {
+              endLine = j;
+            } else {
+              break;
+            }
+          }
+
+          const category = this.getCriticalCategory(line);
+          issues.push({
+            rule: this.name,
+            severity: 'block',
+            message: category
+              ? `CRITICAL: ${message} - ${category} code has been commented out`
+              : `CRITICAL: ${message}`,
+            location: {
+              file: filename,
+              line: i + 1,
+              endLine: endLine + 1,
+              snippet: line.trim().slice(0, 100),
+            },
+            suggestion: 'Do not comment out security validation. Remove or fix the code properly.',
+            autoFixable: false,
+          });
+          break; // Only report once per line
+        }
+      }
+    }
 
     return issues;
   }

@@ -195,15 +195,15 @@ Tài liệu này dùng để theo dõi tiến độ triển khai dự án Claude
 *Mục tiêu: Đảm bảo code chạy đúng như thiết kế.*
 
 - [ ] **Task 8.1**: **Test Strategy** - Tạo file `TESTING.md`
-    - *Tham khảo:* Tài liệu Testing vừa tạo
+    - *Tham khảo:* Tài liệu Testing.md vừa tạo
 - [ ] **Task 8.2**: **Unit Tests Setup** - Cài đặt `vitest`
     - *Tham khảo:* `package.json`
 - [ ] **Task 8.3**: **Guard Tests** - Implement `tests/unit/guard.test.ts`
-    - *Tham khảo:* Tài liệu Testing (Mục 1)
+    - *Tham khảo:* Tài liệu Testing.md (Mục 1)
 - [ ] **Task 8.4**: **Utils Tests** - Implement `tests/unit/utils.test.ts`
-    - *Tham khảo:* Tài liệu Testing (Mục 2)
+    - *Tham khảo:* Tài liệu Testing.md (Mục 2)
 - [ ] **Task 8.5**: **Config Tests** - Implement `tests/unit/config.test.ts`
-    - *Tham khảo:* Tài liệu Testing (Mục 3)
+    - *Tham khảo:* Tài liệu Testing.md (Mục 3)
 
 ## HƯỚNG DẪN PROMPT CHO CLAUDE
 

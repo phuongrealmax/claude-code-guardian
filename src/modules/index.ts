@@ -102,6 +102,20 @@ export type {
   DocumentsModuleStatus,
 } from './documents/index.js';
 
+// Agents Module - Multi-agent architecture
+export { AgentsModule, AgentsService } from './agents/index.js';
+export type {
+  Agent,
+  AgentSelection,
+  AgentsModuleConfig,
+  AgentsModuleStatus,
+  DelegationRule,
+  RegisterAgentParams,
+  SelectAgentParams,
+  CoordinateAgentsParams,
+  CoordinationResult,
+} from './agents/index.js';
+
 // ═══════════════════════════════════════════════════════════════
 //                      MODULE INTERFACE
 // ═══════════════════════════════════════════════════════════════
@@ -156,7 +170,18 @@ import {
   WorkflowModuleConfig,
   TestingModuleConfig,
   DocumentsModuleConfig,
+  AgentsModuleConfig,
 } from '../core/types.js';
+
+// Import module classes for use in initializeModules
+import { MemoryModule } from './memory/index.js';
+import { GuardModule } from './guard/index.js';
+import { ProcessModule } from './process/index.js';
+import { ResourceModule } from './resource/index.js';
+import { WorkflowModule } from './workflow/index.js';
+import { TestingModule } from './testing/index.js';
+import { DocumentsModule } from './documents/index.js';
+import { AgentsModule } from './agents/index.js';
 
 /**
  * Initialized modules interface for HookRouter
@@ -169,6 +194,7 @@ export interface InitializedModules {
   workflow: WorkflowModule;
   testing: TestingModule;
   documents: DocumentsModule;
+  agents: AgentsModule;
 }
 
 /**
@@ -182,6 +208,7 @@ function getDefaultConfigs(ccgDir: string): {
   workflow: WorkflowModuleConfig;
   testing: TestingModuleConfig;
   documents: DocumentsModuleConfig;
+  agents: AgentsModuleConfig;
 } {
   return {
     memory: {
@@ -248,6 +275,13 @@ function getDefaultConfigs(ccgDir: string): {
       updateInsteadOfCreate: true,
       namingConvention: 'kebab-case',
     },
+    agents: {
+      enabled: true,
+      agentsFilePath: 'AGENTS.md',
+      agentsDir: '.claude/agents',
+      autoReload: true,
+      enableCoordination: true,
+    },
   };
 }
 
@@ -277,6 +311,7 @@ export async function initializeModules(
   const workflowConfig = (await configManager.get('modules.workflow') as WorkflowModuleConfig | null) || defaults.workflow;
   const testingConfig = (await configManager.get('modules.testing') as TestingModuleConfig | null) || defaults.testing;
   const documentsConfig = (await configManager.get('modules.documents') as DocumentsModuleConfig | null) || defaults.documents;
+  const agentsConfig = (await configManager.get('modules.agents') as AgentsModuleConfig | null) || defaults.agents;
 
   // Initialize Memory Module
   const memoryModule = new MemoryModule(memoryConfig, eventBus, logger);
@@ -306,6 +341,10 @@ export async function initializeModules(
   const documentsModule = new DocumentsModule(documentsConfig, eventBus, logger, projectRoot);
   await documentsModule.initialize();
 
+  // Initialize Agents Module
+  const agentsModule = new AgentsModule(agentsConfig, eventBus, logger, projectRoot);
+  await agentsModule.initialize();
+
   logger.info('All CCG modules initialized');
 
   return {
@@ -316,6 +355,7 @@ export async function initializeModules(
     workflow: workflowModule,
     testing: testingModule,
     documents: documentsModule,
+    agents: agentsModule,
   };
 }
 
@@ -330,4 +370,5 @@ export async function shutdownModules(modules: InitializedModules): Promise<void
   await modules.workflow.shutdown();
   await modules.testing.shutdown();
   await modules.documents.shutdown();
+  await modules.agents.shutdown();
 }

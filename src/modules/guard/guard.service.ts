@@ -15,11 +15,13 @@ import {
   RuleStatus,
 } from './guard.types.js';
 
-// Import rules (will be implemented in Task 3.2)
+// Import rules
 import { FakeTestRule } from './rules/fake-test.rule.js';
 import { DisabledFeatureRule } from './rules/disabled-feature.rule.js';
 import { EmptyCatchRule } from './rules/empty-catch.rule.js';
 import { EmojiCodeRule } from './rules/emoji-code.rule.js';
+import { SqlInjectionRule } from './rules/sql-injection.rule.js';
+import { HardcodedSecretsRule } from './rules/hardcoded-secrets.rule.js';
 
 // ═══════════════════════════════════════════════════════════════
 //                      GUARD SERVICE CLASS
@@ -69,6 +71,15 @@ export class GuardService {
 
     if (this.config.rules.blockEmojiInCode) {
       this.rules.push(new EmojiCodeRule());
+    }
+
+    // Security rules - enabled by default
+    if (this.config.rules.blockSqlInjection !== false) {
+      this.rules.push(new SqlInjectionRule());
+    }
+
+    if (this.config.rules.blockHardcodedSecrets !== false) {
+      this.rules.push(new HardcodedSecretsRule());
     }
 
     // TODO: Load custom rules from config.rules.customRules
@@ -130,7 +141,7 @@ export class GuardService {
 
     // Determine if should block
     const blockingIssues = issues.filter(i => i.severity === 'block');
-    const blocked = (this.config.strictMode || options.strict) && blockingIssues.length > 0;
+    const blocked = Boolean((this.config.strictMode || options.strict) && blockingIssues.length > 0);
 
     if (blocked) {
       this.blockedCount++;

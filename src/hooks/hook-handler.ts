@@ -4,23 +4,23 @@ import { ConfigManager } from '../core/config-manager.js';
 import { StateManager } from '../core/state-manager.js';
 import { EventBus } from '../core/event-bus.js';
 
-// Module imports - use actual service types
-import { MemoryService } from '../modules/memory/memory.service.js';
-import { GuardService } from '../modules/guard/guard.service.js';
-import { ProcessService } from '../modules/process/process.service.js';
-import { ResourceService } from '../modules/resource/resource.service.js';
-import { WorkflowService } from '../modules/workflow/workflow.service.js';
-import { TestingService } from '../modules/testing/testing.service.js';
-import { DocumentsService } from '../modules/documents/documents.service.js';
+// Module imports - use Module classes
+import { MemoryModule } from '../modules/memory/index.js';
+import { GuardModule } from '../modules/guard/index.js';
+import { ProcessModule } from '../modules/process/index.js';
+import { ResourceModule } from '../modules/resource/index.js';
+import { WorkflowModule } from '../modules/workflow/index.js';
+import { TestingModule } from '../modules/testing/index.js';
+import { DocumentsModule } from '../modules/documents/index.js';
 
 export interface Modules {
-  memory: MemoryService;
-  guard: GuardService;
-  process: ProcessService;
-  resource: ResourceService;
-  workflow: WorkflowService;
-  testing: TestingService;
-  documents: DocumentsService;
+  memory: MemoryModule;
+  guard: GuardModule;
+  process: ProcessModule;
+  resource: ResourceModule;
+  workflow: WorkflowModule;
+  testing: TestingModule;
+  documents: DocumentsModule;
 }
 
 export abstract class HookHandler {
