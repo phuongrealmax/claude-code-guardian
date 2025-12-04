@@ -1,6 +1,7 @@
 'use client'
 
 import Footer from './components/Footer'
+import WorkflowDiagram from './components/WorkflowDiagram'
 import { useScrollAnimation } from './hooks/useScrollAnimation'
 
 export default function Home() {
@@ -280,6 +281,16 @@ export default function Home() {
               <h3>4. Refactor</h3>
               <p>Use Claude Code to apply safe, incremental improvements.</p>
             </div>
+          </div>
+
+          <div style={{marginTop: '60px'}}>
+            <h3 style={{textAlign: 'center', marginBottom: '16px', fontSize: '1.5rem'}}>
+              Agent Collaboration Workflow
+            </h3>
+            <p className="subtitle" style={{marginBottom: '40px'}}>
+              How CCG's specialized agents work together to solve complex tasks
+            </p>
+            <WorkflowDiagram />
           </div>
         </div>
       </section>
