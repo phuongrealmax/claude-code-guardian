@@ -904,9 +904,82 @@
         "recommended iterations"
       ],
       "linkedFiles": []
+    },
+    {
+      "id": "8d04ab70-a1ed-43c7-a218-211d0f6953ca",
+      "path": "c:\\CLAUDE-CODE-GUARDIAN\\docs\\LAUNCH_READINESS.md",
+      "name": "LAUNCH_READINESS.md",
+      "type": "other",
+      "createdAt": "2025-12-04T17:21:55.745Z",
+      "updatedAt": "2025-12-04T17:21:55.745Z",
+      "hash": "6cd6caa42049fbf06d991fc7d15464be",
+      "size": 8981,
+      "description": "",
+      "tags": [
+        "2. site testing ✅ complete",
+        "3. landing page ux ✅ complete"
+      ],
+      "linkedFiles": [
+        "c:\\CLAUDE-CODE-GUARDIAN\\docs\\PADDLE_SETUP_CHECKLIST.md",
+        "c:\\CLAUDE-CODE-GUARDIAN\\docs\\PADDLE_SETUP_CHECKLIST.md"
+      ]
+    },
+    {
+      "id": "6920aa93-8149-49f5-917b-05d851548407",
+      "path": "c:\\CLAUDE-CODE-GUARDIAN\\docs\\LICENSE_SYSTEM.md",
+      "name": "LICENSE_SYSTEM.md",
+      "type": "architecture",
+      "createdAt": "2025-12-04T16:41:58.272Z",
+      "updatedAt": "2025-12-04T16:41:58.272Z",
+      "hash": "a49f6698fde801028b55e5132b420b78",
+      "size": 16230,
+      "description": "",
+      "tags": [
+        "overview",
+        "architecture",
+        "components"
+      ],
+      "linkedFiles": []
+    },
+    {
+      "id": "5c5bba6d-27c3-4f86-8552-aedb10b4a230",
+      "path": "c:\\CLAUDE-CODE-GUARDIAN\\docs\\PADDLE_INTEGRATION.md",
+      "name": "PADDLE_INTEGRATION.md",
+      "type": "other",
+      "createdAt": "2025-12-04T16:43:32.442Z",
+      "updatedAt": "2025-12-04T16:43:32.442Z",
+      "hash": "ee7a78d551857850c22e5a557080a395",
+      "size": 6925,
+      "description": "",
+      "tags": [
+        "what's done",
+        "✅ backend implementation",
+        "what's next"
+      ],
+      "linkedFiles": [
+        "c:\\CLAUDE-CODE-GUARDIAN\\docs\\LICENSE_SYSTEM.md"
+      ]
+    },
+    {
+      "id": "9dcf5305-4ec2-4d8a-87b5-278ebbea8a7b",
+      "path": "c:\\CLAUDE-CODE-GUARDIAN\\docs\\PADDLE_SETUP_CHECKLIST.md",
+      "name": "PADDLE_SETUP_CHECKLIST.md",
+      "type": "other",
+      "createdAt": "2025-12-04T17:01:28.329Z",
+      "updatedAt": "2025-12-04T17:01:28.330Z",
+      "hash": "278d51bd0f2dab4815136c1861cb9830",
+      "size": 6019,
+      "description": "",
+      "tags": [
+        "step 1: create paddle account",
+        "step 2: create product"
+      ],
+      "linkedFiles": [
+        "c:\\CLAUDE-CODE-GUARDIAN\\docs\\PADDLE_INTEGRATION.md"
+      ]
     }
   ],
-  "lastScanned": "2025-12-04T14:59:55.508Z",
+  "lastScanned": "2025-12-04T19:14:01.358Z",
   "locations": {
     "readme": "README.md",
     "docs": "docs",
