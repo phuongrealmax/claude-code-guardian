@@ -231,8 +231,3 @@ export default function Success() {
     </Suspense>
   );
 }
-
-export const metadata = {
-  title: 'Payment Successful — Code Guardian Studio',
-  description: 'Your Team license has been activated successfully.',
-};
