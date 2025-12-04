@@ -9,7 +9,7 @@ export default function WorkflowDiagram() {
         viewBox="0 0 700 550"
         style={{ maxWidth: '800px', margin: '0 auto', display: 'block' }}
       >
-        {/* Dashed connecting lines - Attio style */}
+        {/* Dashed connecting lines - Orthogonal with animated dots */}
         <defs>
           <marker
             id="arrowhead"
@@ -23,9 +23,10 @@ export default function WorkflowDiagram() {
           </marker>
         </defs>
 
-        {/* Smooth curved path from Task to Analysis */}
+        {/* Task to Analysis - vertical connection */}
         <path
-          d="M 350 80 C 350 95, 350 120, 350 145"
+          id="path1"
+          d="M 350 80 L 350 145"
           stroke="rgba(255,255,255,0.15)"
           strokeWidth="1.5"
           strokeDasharray="4 6"
@@ -33,10 +34,16 @@ export default function WorkflowDiagram() {
           markerEnd="url(#arrowhead)"
           className="workflow-line"
         />
+        <circle r="2" fill="rgba(255,255,255,0.6)">
+          <animateMotion dur="2s" repeatCount="indefinite">
+            <mpath href="#path1" />
+          </animateMotion>
+        </circle>
 
-        {/* Smooth curved path from Analysis to Code Scan */}
+        {/* Analysis to Code Scan - orthogonal path */}
         <path
-          d="M 350 200 C 350 220, 275 240, 200 270"
+          id="path2"
+          d="M 250 172 L 180 172 L 180 270"
           stroke="rgba(255,255,255,0.15)"
           strokeWidth="1.5"
           strokeDasharray="4 6"
@@ -44,10 +51,16 @@ export default function WorkflowDiagram() {
           markerEnd="url(#arrowhead)"
           className="workflow-line"
         />
+        <circle r="2" fill="rgba(255,255,255,0.6)">
+          <animateMotion dur="2.5s" repeatCount="indefinite">
+            <mpath href="#path2" />
+          </animateMotion>
+        </circle>
 
-        {/* Smooth curved path from Analysis to Metrics */}
+        {/* Analysis to Metrics - orthogonal path */}
         <path
-          d="M 350 200 C 350 220, 425 240, 500 270"
+          id="path3"
+          d="M 450 172 L 520 172 L 520 270"
           stroke="rgba(255,255,255,0.15)"
           strokeWidth="1.5"
           strokeDasharray="4 6"
@@ -55,10 +68,16 @@ export default function WorkflowDiagram() {
           markerEnd="url(#arrowhead)"
           className="workflow-line"
         />
+        <circle r="2" fill="rgba(255,255,255,0.6)">
+          <animateMotion dur="2.5s" repeatCount="indefinite">
+            <mpath href="#path3" />
+          </animateMotion>
+        </circle>
 
-        {/* Smooth curved path from Code Scan to Hotspots */}
+        {/* Code Scan to Hotspots - orthogonal path */}
         <path
-          d="M 200 330 C 220 350, 260 370, 290 390"
+          id="path4"
+          d="M 200 330 L 200 360 L 270 360 L 270 390"
           stroke="rgba(255,255,255,0.15)"
           strokeWidth="1.5"
           strokeDasharray="4 6"
@@ -66,10 +85,16 @@ export default function WorkflowDiagram() {
           markerEnd="url(#arrowhead)"
           className="workflow-line"
         />
+        <circle r="2" fill="rgba(255,255,255,0.6)">
+          <animateMotion dur="2.5s" repeatCount="indefinite">
+            <mpath href="#path4" />
+          </animateMotion>
+        </circle>
 
-        {/* Smooth curved path from Metrics to Hotspots */}
+        {/* Metrics to Hotspots - orthogonal path */}
         <path
-          d="M 500 330 C 480 350, 440 370, 410 390"
+          id="path5"
+          d="M 500 330 L 500 360 L 430 360 L 430 390"
           stroke="rgba(255,255,255,0.15)"
           strokeWidth="1.5"
           strokeDasharray="4 6"
@@ -77,10 +102,16 @@ export default function WorkflowDiagram() {
           markerEnd="url(#arrowhead)"
           className="workflow-line"
         />
+        <circle r="2" fill="rgba(255,255,255,0.6)">
+          <animateMotion dur="2.5s" repeatCount="indefinite">
+            <mpath href="#path5" />
+          </animateMotion>
+        </circle>
 
-        {/* Smooth curved path from Hotspots to Plan */}
+        {/* Hotspots to Plan - vertical connection */}
         <path
-          d="M 350 450 C 350 465, 350 475, 350 490"
+          id="path6"
+          d="M 350 450 L 350 490"
           stroke="rgba(255,255,255,0.15)"
           strokeWidth="1.5"
           strokeDasharray="4 6"
@@ -88,6 +119,11 @@ export default function WorkflowDiagram() {
           markerEnd="url(#arrowhead)"
           className="workflow-line"
         />
+        <circle r="2" fill="rgba(255,255,255,0.6)">
+          <animateMotion dur="2s" repeatCount="indefinite">
+            <mpath href="#path6" />
+          </animateMotion>
+        </circle>
 
         {/* Node 1: Task Input */}
         <g className="workflow-node">
