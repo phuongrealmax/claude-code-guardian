@@ -34,7 +34,9 @@ export default function RootLayout({
       </head>
       <body>
         <Header />
-        {children}
+        <main style={{ paddingTop: '96px' }}>
+          {children}
+        </main>
       </body>
     </html>
   )
