@@ -14,7 +14,8 @@
 
 import { Command } from 'commander';
 import chalk from 'chalk';
-import { join } from 'path';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
 import {
   existsSync,
   mkdirSync,
@@ -25,6 +26,10 @@ import {
 
 import { createHookCommand } from './hook-command.js';
 import { createActivateCommand } from './commands/activate.js';
+
+// ES module equivalent of __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const program = new Command();
 

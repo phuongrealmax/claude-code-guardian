@@ -11,8 +11,11 @@ export default defineConfig({
       include: ['src/**/*.ts'],
       exclude: ['src/**/*.d.ts', 'src/bin/**'],
     },
-    testTimeout: 10000,
-    hookTimeout: 10000,
+    testTimeout: 600000, // 10 minutes for E2E integration tests
+    hookTimeout: 30000, // 30s for hooks
+    typecheck: {
+      tsconfig: './tsconfig.test.json',
+    },
   },
   resolve: {
     alias: {
