@@ -23,80 +23,68 @@ export default function WorkflowDiagram() {
           </marker>
         </defs>
 
-        {/* Vertical line from Task to Analysis */}
-        <line
-          x1="350"
-          y1="75"
-          x2="350"
-          y2="135"
+        {/* Smooth curved path from Task to Analysis */}
+        <path
+          d="M 350 80 C 350 95, 350 120, 350 145"
           stroke="rgba(255,255,255,0.15)"
           strokeWidth="1.5"
           strokeDasharray="4 6"
+          fill="none"
           markerEnd="url(#arrowhead)"
           className="workflow-line"
         />
 
-        {/* Line from Analysis to Code Scan */}
-        <line
-          x1="350"
-          y1="195"
-          x2="200"
-          y2="265"
+        {/* Smooth curved path from Analysis to Code Scan */}
+        <path
+          d="M 350 200 C 350 220, 275 240, 200 270"
           stroke="rgba(255,255,255,0.15)"
           strokeWidth="1.5"
           strokeDasharray="4 6"
+          fill="none"
           markerEnd="url(#arrowhead)"
           className="workflow-line"
         />
 
-        {/* Line from Analysis to Metrics */}
-        <line
-          x1="350"
-          y1="195"
-          x2="500"
-          y2="265"
+        {/* Smooth curved path from Analysis to Metrics */}
+        <path
+          d="M 350 200 C 350 220, 425 240, 500 270"
           stroke="rgba(255,255,255,0.15)"
           strokeWidth="1.5"
           strokeDasharray="4 6"
+          fill="none"
           markerEnd="url(#arrowhead)"
           className="workflow-line"
         />
 
-        {/* Line from Code Scan to Hotspots */}
-        <line
-          x1="200"
-          y1="325"
-          x2="275"
-          y2="385"
+        {/* Smooth curved path from Code Scan to Hotspots */}
+        <path
+          d="M 200 330 C 220 350, 260 370, 290 390"
           stroke="rgba(255,255,255,0.15)"
           strokeWidth="1.5"
           strokeDasharray="4 6"
+          fill="none"
           markerEnd="url(#arrowhead)"
           className="workflow-line"
         />
 
-        {/* Line from Metrics to Hotspots */}
-        <line
-          x1="500"
-          y1="325"
-          x2="425"
-          y2="385"
+        {/* Smooth curved path from Metrics to Hotspots */}
+        <path
+          d="M 500 330 C 480 350, 440 370, 410 390"
           stroke="rgba(255,255,255,0.15)"
           strokeWidth="1.5"
           strokeDasharray="4 6"
+          fill="none"
           markerEnd="url(#arrowhead)"
           className="workflow-line"
         />
 
-        {/* Line from Hotspots to Plan */}
-        <line
-          x1="350"
-          y1="445"
-          x2="350"
-          y2="485"
+        {/* Smooth curved path from Hotspots to Plan */}
+        <path
+          d="M 350 450 C 350 465, 350 475, 350 490"
           stroke="rgba(255,255,255,0.15)"
           strokeWidth="1.5"
           strokeDasharray="4 6"
+          fill="none"
           markerEnd="url(#arrowhead)"
           className="workflow-line"
         />
