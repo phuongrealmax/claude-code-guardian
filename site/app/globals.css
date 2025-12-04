@@ -567,15 +567,22 @@ footer a:hover {
 
 /* Scroll Animations */
 .scroll-fade-in {
-  opacity: 0;
-  transform: translateY(30px);
-  transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1),
-              transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.scroll-fade-in.animate-in {
   opacity: 1;
   transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .scroll-fade-in {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+                transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .scroll-fade-in.animate-in {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .scroll-fade-in-fast {
@@ -592,15 +599,22 @@ footer a:hover {
 
 /* Staggered animations */
 .stagger-item {
-  opacity: 0;
-  transform: translateY(20px);
-  transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1),
-              transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.stagger-item.animate-in {
   opacity: 1;
   transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .stagger-item {
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+                transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .stagger-item.animate-in {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .stagger-item:nth-child(1).animate-in {
@@ -621,15 +635,22 @@ footer a:hover {
 
 /* Scale animation for cards */
 .scroll-scale {
-  opacity: 0;
-  transform: scale(0.95) translateY(20px);
-  transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1),
-              transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.scroll-scale.animate-in {
   opacity: 1;
   transform: scale(1) translateY(0);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .scroll-scale {
+    opacity: 0;
+    transform: scale(0.95) translateY(20px);
+    transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+                transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .scroll-scale.animate-in {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
 }
 
 /* Responsive */
