@@ -1,10 +1,21 @@
+'use client'
+
 import Footer from './components/Footer'
+import { useScrollAnimation } from './hooks/useScrollAnimation'
 
 export default function Home() {
+  const heroRef = useScrollAnimation<HTMLElement>({ threshold: 0.2 })
+  const statsRef = useScrollAnimation<HTMLElement>({ threshold: 0.3 })
+  const testimonialsRef = useScrollAnimation<HTMLElement>({ threshold: 0.2 })
+  const featuresRef = useScrollAnimation<HTMLElement>({ threshold: 0.2 })
+  const hotspotsRef = useScrollAnimation<HTMLElement>({ threshold: 0.3 })
+  const howItWorksRef = useScrollAnimation<HTMLElement>({ threshold: 0.2 })
+  const pricingRef = useScrollAnimation<HTMLElement>({ threshold: 0.2 })
+
   return (
     <main>
       {/* Hero */}
-      <section className="hero">
+      <section ref={heroRef} className="hero scroll-fade-in">
         <div className="container">
           <span className="badge">
             Trusted by 500+ developers
@@ -62,7 +73,7 @@ export default function Home() {
       </section>
 
       {/* Stats from dogfooding */}
-      <section>
+      <section ref={statsRef} className="scroll-fade-in">
         <div className="container">
           <p className="subtitle" style={{textAlign: 'center', marginBottom: '32px'}}>
             Real results from our own codebase dogfooding
@@ -89,13 +100,13 @@ export default function Home() {
       </section>
 
       {/* Testimonials */}
-      <section>
+      <section ref={testimonialsRef} className="scroll-fade-in">
         <div className="container">
           <h2>Loved by Developers</h2>
           <p className="subtitle">What teams are saying about Code Guardian Studio</p>
 
           <div className="features-grid">
-            <div className="feature-card" style={{textAlign: 'left'}}>
+            <div className="feature-card stagger-item" style={{textAlign: 'left'}}>
               <div style={{marginBottom: '8px', fontSize: '0.75rem', opacity: 0.6}}>5/5</div>
               <p style={{fontStyle: 'italic', marginBottom: '16px'}}>
                 "Code Guardian reduced our refactoring time by 60%. What took weeks now takes hours.
@@ -107,7 +118,7 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="feature-card" style={{textAlign: 'left'}}>
+            <div className="feature-card stagger-item" style={{textAlign: 'left'}}>
               <div style={{marginBottom: '8px', fontSize: '0.75rem', opacity: 0.6}}>5/5</div>
               <p style={{fontStyle: 'italic', marginBottom: '16px'}}>
                 "Finally, a tool that understands large codebases. The reports are detailed yet readable.
@@ -119,7 +130,7 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="feature-card" style={{textAlign: 'left'}}>
+            <div className="feature-card stagger-item" style={{textAlign: 'left'}}>
               <div style={{marginBottom: '8px', fontSize: '0.75rem', opacity: 0.6}}>5/5</div>
               <p style={{fontStyle: 'italic', marginBottom: '16px'}}>
                 "The AI-guided refactoring is a game changer. It catches patterns we'd miss in code review.
@@ -135,13 +146,13 @@ export default function Home() {
       </section>
 
       {/* Features */}
-      <section>
+      <section ref={featuresRef} className="scroll-fade-in">
         <div className="container">
           <h2>What It Does</h2>
           <p className="subtitle">8 specialized tools that transform Claude Code into an intelligent refactoring assistant.</p>
 
           <div className="features-grid">
-            <div className="feature-card">
+            <div className="feature-card stagger-item">
               <div className="icon">
                 <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                   <circle cx="11" cy="11" r="8"/>
@@ -154,7 +165,7 @@ export default function Home() {
                 branch scores. Find the files that need the most attention.
               </p>
             </div>
-            <div className="feature-card">
+            <div className="feature-card stagger-item">
               <div className="icon">
                 <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                   <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
@@ -166,7 +177,7 @@ export default function Home() {
                 oversight. Guard module blocks dangerous patterns.
               </p>
             </div>
-            <div className="feature-card">
+            <div className="feature-card stagger-item">
               <div className="icon">
                 <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                   <line x1="18" x2="18" y1="20" y2="10"/>
@@ -185,7 +196,7 @@ export default function Home() {
       </section>
 
       {/* Sample Hotspots */}
-      <section>
+      <section ref={hotspotsRef} className="scroll-fade-in">
         <div className="container">
           <h2>Real Results</h2>
           <p className="subtitle">From our own codebase analysis (yes, we dogfood).</p>
@@ -242,30 +253,30 @@ export default function Home() {
       </section>
 
       {/* How It Works */}
-      <section>
+      <section ref={howItWorksRef} className="scroll-fade-in">
         <div className="container">
           <h2>How It Works</h2>
           <p className="subtitle">From install to insights in 4 steps.</p>
 
           <div className="features-grid">
-            <div className="feature-card">
+            <div className="feature-card stagger-item">
               <h3>1. Install</h3>
               <div className="code-block">
                 npm install -g @anthropic-community/claude-code-guardian<br/>
                 ccg init
               </div>
             </div>
-            <div className="feature-card">
+            <div className="feature-card stagger-item">
               <h3>2. Analyze</h3>
               <div className="code-block">
                 ccg code-optimize --report
               </div>
             </div>
-            <div className="feature-card">
+            <div className="feature-card stagger-item">
               <h3>3. Review</h3>
               <p>Open the generated report. See hotspots, metrics, and recommendations.</p>
             </div>
-            <div className="feature-card">
+            <div className="feature-card stagger-item">
               <h3>4. Refactor</h3>
               <p>Use Claude Code to apply safe, incremental improvements.</p>
             </div>
@@ -274,13 +285,13 @@ export default function Home() {
       </section>
 
       {/* Pricing */}
-      <section id="pricing">
+      <section ref={pricingRef} id="pricing" className="scroll-fade-in">
         <div className="container">
           <h2>Pricing</h2>
           <p className="subtitle">Start free. Scale when ready.</p>
 
           <div className="pricing-grid">
-            <div className="pricing-card">
+            <div className="pricing-card scroll-scale">
               <h3>Dev</h3>
               <div className="price">Free</div>
               <p>For solo devs & side projects</p>
@@ -294,7 +305,7 @@ export default function Home() {
               <a href="#get-started" className="btn btn-secondary">Get Started</a>
             </div>
 
-            <div className="pricing-card featured">
+            <div className="pricing-card featured scroll-scale">
               <h3>Team</h3>
               <div className="price">$39<span style={{fontSize: '1rem', color: '#888'}}>/mo</span></div>
               <p>For product teams & agencies</p>
@@ -308,7 +319,7 @@ export default function Home() {
               <a href="#contact" className="btn btn-primary">Start Trial</a>
             </div>
 
-            <div className="pricing-card">
+            <div className="pricing-card scroll-scale">
               <h3>Enterprise</h3>
               <div className="price">Custom</div>
               <p>For large orgs & compliance</p>
