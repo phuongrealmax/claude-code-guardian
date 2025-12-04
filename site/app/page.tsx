@@ -202,7 +202,9 @@ export default function Home() {
           <h2>Real Results</h2>
           <p className="subtitle">From our own codebase analysis (yes, we dogfood).</p>
 
-          <table className="hotspots-table">
+          <div className="overflow-x-auto -mx-4 sm:mx-0">
+            <div className="inline-block min-w-full px-4 sm:px-0">
+              <table className="hotspots-table">
             <thead>
               <tr>
                 <th>Rank</th>
@@ -250,6 +252,8 @@ export default function Home() {
               </tr>
             </tbody>
           </table>
+            </div>
+          </div>
         </div>
       </section>
 

@@ -413,27 +413,45 @@ section .subtitle {
 .hotspots-table {
   width: 100%;
   border-collapse: collapse;
-  margin: 32px 0;
+  margin: 24px 0;
   background: rgba(255, 255, 255, 0.02);
   border-radius: 12px;
   overflow: hidden;
   border: 1px solid var(--border);
+  font-size: 11px;
 }
 
 .hotspots-table th,
 .hotspots-table td {
-  padding: 16px 20px;
+  padding: 12px 8px;
   text-align: left;
   border-bottom: 1px solid var(--border);
+  white-space: nowrap;
 }
 
 .hotspots-table th {
   color: var(--text-muted);
   font-weight: 600;
-  font-size: 0.875rem;
+  font-size: 10px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   background: rgba(255, 255, 255, 0.03);
+}
+
+@media (min-width: 640px) {
+  .hotspots-table {
+    margin: 32px 0;
+    font-size: 0.875rem;
+  }
+
+  .hotspots-table th,
+  .hotspots-table td {
+    padding: 16px 20px;
+  }
+
+  .hotspots-table th {
+    font-size: 0.875rem;
+  }
 }
 
 .hotspots-table tbody tr {
