@@ -147,9 +147,9 @@ body {
 }
 
 .btn {
-  padding: 16px 32px;
-  border-radius: 12px;
-  font-size: 1rem;
+  padding: 12px 24px;
+  border-radius: 10px;
+  font-size: 0.9375rem;
   font-weight: 600;
   text-decoration: none;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);

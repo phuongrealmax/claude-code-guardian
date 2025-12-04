@@ -52,7 +52,7 @@ function SuccessContent() {
             </>
           ) : error ? (
             <>
-              <h1 style={{ color: 'var(--danger)' }}>❌ Error</h1>
+              <h1 style={{ color: 'var(--error)' }}>Error</h1>
               <p>{error}</p>
               <div style={{ marginTop: '32px' }}>
                 <a href="/pricing" className="btn btn-primary">
@@ -62,7 +62,7 @@ function SuccessContent() {
             </>
           ) : (
             <>
-              <h1>🎉 Welcome to Code Guardian Studio!</h1>
+              <h1>Welcome to Code Guardian Studio!</h1>
               <p>Your Team license is now active.</p>
             </>
           )}
@@ -102,7 +102,7 @@ function SuccessContent() {
                   {licenseKey}
                 </div>
                 <button onClick={copyLicenseKey} className="btn btn-secondary btn-sm">
-                  📋 Copy to Clipboard
+                  Copy to Clipboard
                 </button>
               </div>
 
@@ -143,42 +143,85 @@ function SuccessContent() {
 
               <div className="features-grid">
                 <div className="feature-card">
-                  <h3>📊 Advanced Reports</h3>
+                  <div className="icon">
+                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <line x1="18" x2="18" y1="20" y2="10"/>
+                      <line x1="12" x2="12" y1="20" y2="4"/>
+                      <line x1="6" x2="6" y1="20" y2="14"/>
+                    </svg>
+                  </div>
+                  <h3>Advanced Reports</h3>
                   <p>
                     Generate detailed Markdown reports with hotspot rankings,
                     metrics, and refactor plans.
                   </p>
                 </div>
                 <div className="feature-card">
-                  <h3>🧠 Latent Chain Mode</h3>
+                  <div className="icon">
+                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
+                      <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                      <line x1="12" x2="12" y1="19" y2="22"/>
+                    </svg>
+                  </div>
+                  <h3>Latent Chain Mode</h3>
                   <p>
                     Multi-phase reasoning for complex refactoring tasks with
                     step-by-step context tracking.
                   </p>
                 </div>
                 <div className="feature-card">
-                  <h3>🤖 Specialized Agents</h3>
+                  <div className="icon">
+                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <rect width="18" height="18" x="3" y="3" rx="2"/>
+                      <path d="M7 7h.01"/>
+                      <path d="M17 7h.01"/>
+                      <path d="M7 17h.01"/>
+                      <path d="M17 17h.01"/>
+                      <path d="M7 12h10"/>
+                    </svg>
+                  </div>
+                  <h3>Specialized Agents</h3>
                   <p>
                     Coordinate multiple agents for cross-domain tasks like
                     trading systems or ERP workflows.
                   </p>
                 </div>
                 <div className="feature-card">
-                  <h3>💭 Thinking Models</h3>
+                  <div className="icon">
+                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38"/>
+                    </svg>
+                  </div>
+                  <h3>Thinking Models</h3>
                   <p>
                     Structured reasoning frameworks: chain-of-thought, tree-of-thoughts,
                     and more.
                   </p>
                 </div>
                 <div className="feature-card">
-                  <h3>🧪 Testing Suite</h3>
+                  <div className="icon">
+                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M7 10h3v3H7v-3Z"/>
+                      <path d="M14 10h3v3h-3v-3Z"/>
+                      <path d="M2 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1-2-1-2 1-2-1Z"/>
+                    </svg>
+                  </div>
+                  <h3>Testing Suite</h3>
                   <p>
                     Browser testing with Playwright, test generation, and
                     automated test runs.
                   </p>
                 </div>
                 <div className="feature-card">
-                  <h3>🎯 Priority Support</h3>
+                  <div className="icon">
+                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <circle cx="12" cy="12" r="10"/>
+                      <line x1="12" x2="12" y1="8" y2="12"/>
+                      <line x1="12" x2="12.01" y1="16" y2="16"/>
+                    </svg>
+                  </div>
+                  <h3>Priority Support</h3>
                   <p>
                     Get help faster with priority email support and dedicated
                     assistance.
@@ -191,7 +234,7 @@ function SuccessContent() {
           {/* Email Confirmation */}
           <section>
             <div className="container" style={{ textAlign: 'center' }}>
-              <h2>📧 Check Your Email</h2>
+              <h2>Check Your Email</h2>
               <p className="subtitle">
                 We've sent a copy of your license key to your email address.
                 <br />
