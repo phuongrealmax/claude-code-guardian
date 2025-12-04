@@ -28,11 +28,24 @@ export function useScrollAnimation<T extends HTMLElement>(
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
             entry.target.classList.add('animate-in')
+
+            // Also add animate-in to all stagger-item children
+            const staggerItems = entry.target.querySelectorAll('.stagger-item')
+            staggerItems.forEach((item) => {
+              item.classList.add('animate-in')
+            })
+
             if (triggerOnce) {
               observer.unobserve(entry.target)
             }
           } else if (!triggerOnce) {
             entry.target.classList.remove('animate-in')
+
+            // Remove from stagger-item children too
+            const staggerItems = entry.target.querySelectorAll('.stagger-item')
+            staggerItems.forEach((item) => {
+              item.classList.remove('animate-in')
+            })
           }
         })
       },
