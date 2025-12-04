@@ -40,6 +40,9 @@ coverage
 .ccg/memory.db-*
 .ccg/checkpoints/*.json
 
+# Internal documentation (not for public)
+internal/
+
 # Temporary files
 *.tmp
 *.temp
