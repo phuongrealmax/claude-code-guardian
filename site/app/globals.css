@@ -111,7 +111,7 @@ body {
   transform: translateX(-50%);
   width: 1000px;
   height: 1000px;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.03) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.08) 0%, transparent 70%);
   pointer-events: none;
 }
 
@@ -148,11 +148,11 @@ body {
 
 .btn {
   padding: 16px 32px;
-  border-radius: 8px;
+  border-radius: 12px;
   font-size: 1rem;
   font-weight: 600;
   text-decoration: none;
-  transition: all 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   border: none;
   cursor: pointer;
   letter-spacing: -0.01em;
@@ -161,21 +161,30 @@ body {
 .btn-primary {
   background: var(--text);
   color: var(--bg);
+  box-shadow: 0 4px 20px rgba(255, 255, 255, 0.15);
 }
 
 .btn-primary:hover {
   background: var(--primary-muted);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(255, 255, 255, 0.2);
+}
+
+.btn-primary:active {
+  transform: translateY(0);
 }
 
 .btn-secondary {
-  background: transparent;
+  background: rgba(255, 255, 255, 0.05);
   color: var(--text);
   border: 1px solid var(--border-light);
+  backdrop-filter: blur(10px);
 }
 
 .btn-secondary:hover {
   border-color: var(--text-muted);
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.08);
+  transform: translateY(-2px);
 }
 
 /* Sections */
@@ -210,17 +219,37 @@ section .subtitle {
 }
 
 .feature-card {
-  background: rgba(255, 255, 255, 0.02);
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(20px) saturate(180%);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 20px;
   padding: 40px;
-  transition: all 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
+  overflow: hidden;
+}
+
+.feature-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  opacity: 0;
+  transition: opacity 0.3s ease;
 }
 
 .feature-card:hover {
+  transform: translateY(-4px);
   border-color: var(--border-light);
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(255, 255, 255, 0.05);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+
+.feature-card:hover::before {
+  opacity: 1;
 }
 
 .feature-card h3 {
@@ -245,9 +274,15 @@ section .subtitle {
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-light);
+  transition: all 0.3s ease;
+}
+
+.feature-card:hover .icon {
+  background: rgba(255, 255, 255, 0.12);
+  box-shadow: 0 4px 12px rgba(255, 255, 255, 0.1);
 }
 
 .icon svg {
@@ -268,6 +303,7 @@ section .subtitle {
   font-size: 0.9375rem;
   overflow-x: auto;
   margin: 24px 0;
+  backdrop-filter: blur(10px);
   line-height: 1.6;
 }
 
@@ -349,29 +385,55 @@ section .subtitle {
 /* Pricing */
 .pricing-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmin(300px, 1fr));
   gap: 24px;
   margin-top: 64px;
 }
 
 .pricing-card {
-  background: rgba(255, 255, 255, 0.02);
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(20px) saturate(180%);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 20px;
   padding: 40px;
   text-align: center;
-  transition: all 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
+  overflow: hidden;
+}
+
+.pricing-card::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+  border-radius: 20px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  z-index: -1;
 }
 
 .pricing-card.featured {
   border-color: var(--border-light);
-  background: rgba(255, 255, 255, 0.04);
+  transform: scale(1.05);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.pricing-card.featured::before {
+  opacity: 0.5;
 }
 
 .pricing-card:hover {
+  transform: translateY(-4px) scale(1.02);
   border-color: var(--border-light);
-  background: rgba(255, 255, 255, 0.04);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+}
+
+.pricing-card.featured:hover {
+  transform: translateY(-4px) scale(1.07);
 }
 
 .pricing-card h3 {
@@ -459,15 +521,16 @@ footer a:hover {
 /* Badge */
 .badge {
   display: inline-block;
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.08);
   border: 1px solid var(--border-light);
   padding: 8px 20px;
   border-radius: 50px;
   font-size: 0.875rem;
   margin-bottom: 24px;
   color: var(--text-muted);
-  font-weight: 500;
+  font-weight: 600;
   letter-spacing: -0.01em;
+  backdrop-filter: blur(10px);
 }
 
 /* Floating CTA */
@@ -478,20 +541,28 @@ footer a:hover {
   background: var(--text);
   color: var(--bg);
   padding: 16px 32px;
-  border-radius: 8px;
+  border-radius: 50px;
+  box-shadow: 0 8px 30px rgba(255, 255, 255, 0.2);
   text-decoration: none;
   font-weight: 700;
   font-size: 0.9375rem;
-  transition: all 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   z-index: 1000;
   display: inline-flex;
   align-items: center;
   gap: 8px;
   letter-spacing: -0.01em;
+  backdrop-filter: blur(20px);
 }
 
 .floating-cta:hover {
   background: var(--primary-muted);
+  transform: translateY(-4px) scale(1.05);
+  box-shadow: 0 12px 40px rgba(255, 255, 255, 0.3);
+}
+
+.floating-cta:active {
+  transform: translateY(-2px) scale(1.02);
 }
 
 /* Responsive */
@@ -543,6 +614,14 @@ footer a:hover {
 
   .pricing-grid {
     grid-template-columns: 1fr;
+  }
+
+  .pricing-card.featured {
+    transform: scale(1);
+  }
+
+  .pricing-card.featured:hover {
+    transform: translateY(-4px) scale(1.02);
   }
 
   .floating-cta {
