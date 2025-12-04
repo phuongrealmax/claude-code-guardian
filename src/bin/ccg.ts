@@ -24,6 +24,7 @@ import {
 } from 'fs';
 
 import { createHookCommand } from './hook-command.js';
+import { createActivateCommand } from './commands/activate.js';
 
 const program = new Command();
 
@@ -700,6 +701,12 @@ function getDefaultHooksConfig(): Record<string, unknown> {
     },
   };
 }
+
+// ═══════════════════════════════════════════════════════════════
+//                      ACTIVATE COMMAND
+// ═══════════════════════════════════════════════════════════════
+
+program.addCommand(createActivateCommand());
 
 // ═══════════════════════════════════════════════════════════════
 //                      RUN CLI

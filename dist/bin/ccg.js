@@ -14,6 +14,7 @@ import chalk from 'chalk';
 import { join } from 'path';
 import { existsSync, mkdirSync, writeFileSync, copyFileSync, readFileSync, } from 'fs';
 import { createHookCommand } from './hook-command.js';
+import { createActivateCommand } from './commands/activate.js';
 const program = new Command();
 // ═══════════════════════════════════════════════════════════════
 //                      PROGRAM SETUP
@@ -631,6 +632,10 @@ function getDefaultHooksConfig() {
         },
     };
 }
+// ═══════════════════════════════════════════════════════════════
+//                      ACTIVATE COMMAND
+// ═══════════════════════════════════════════════════════════════
+program.addCommand(createActivateCommand());
 // ═══════════════════════════════════════════════════════════════
 //                      RUN CLI
 // ═══════════════════════════════════════════════════════════════
