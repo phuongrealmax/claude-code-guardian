@@ -26,7 +26,11 @@ import {
 /**
  * Generate a formatted markdown report for an optimization session
  */
-export function generateReport(input: GenerateReportInput, projectRoot: string): GenerateReportOutput {
+export function generateReport(
+  input: GenerateReportInput,
+  projectRoot: string,
+  previousSession?: any | null
+): GenerateReportOutput {
   const sections: ReportSection[] = [];
   const date = new Date().toISOString().split('T')[0];
   const repoName = input.repoName || path.basename(projectRoot);

@@ -14,6 +14,7 @@ import { computeMetrics } from './metrics.js';
 import { selectHotspots } from './hotspots.js';
 import { buildRefactorPlan } from './refactor-plan.js';
 import { generateReport as generateReportFn } from './report-generator.js';
+import { SessionStorage } from './session-storage.js';
 import {
   CodeOptimizerConfig,
   CodeOptimizerStatus,
@@ -41,6 +42,7 @@ export class CodeOptimizerService {
   private logger: Logger;
   private eventBus: EventBus;
   private projectRoot: string;
+  private sessionStorage: SessionStorage;
 
   // Cache
   private lastScan?: ScanRepositoryOutput;
@@ -57,6 +59,7 @@ export class CodeOptimizerService {
     this.eventBus = eventBus;
     this.logger = logger;
     this.projectRoot = projectRoot;
+    this.sessionStorage = new SessionStorage(projectRoot);
   }
 
   // ═══════════════════════════════════════════════════════════════
@@ -248,7 +251,48 @@ export class CodeOptimizerService {
   generateReport(input: GenerateReportInput): GenerateReportOutput {
     this.logger.info('Generating optimization report...', { sessionId: input.sessionId });
 
-    const result = generateReportFn(input, this.projectRoot);
+    // Save current session snapshot if we have all required data
+    if (input.scanResult && input.metricsBefore && input.hotspots) {
+      const repoName = input.repoName || require('path').basename(this.projectRoot);
+      const strategy = input.strategy || 'mixed';
+
+      try {
+        this.sessionStorage.saveSession(
+          input.sessionId,
+          repoName,
+          strategy,
+          input.scanResult,
+          input.metricsBefore,
+          input.hotspots
+        );
+        this.logger.info(`Session snapshot saved: ${input.sessionId}`);
+      } catch (error) {
+        this.logger.warn(`Failed to save session snapshot: ${error}`);
+      }
+    }
+
+    // Try to load previous session for before/after comparison
+    let previousSession = null;
+    if (input.repoName) {
+      try {
+        // Get the most recent session (excluding the current one)
+        const sessions = this.sessionStorage.listSessions({
+          repoName: input.repoName,
+          limit: 2, // Get last 2 to ensure we skip current if it was just saved
+        });
+
+        // Use the second-to-last session if current was just saved,
+        // otherwise use the most recent
+        previousSession = sessions.sessions.find(
+          s => s.sessionId !== input.sessionId
+        ) || null;
+      } catch (error) {
+        this.logger.warn(`Failed to load previous session: ${error}`);
+      }
+    }
+
+    // Generate report with previous session for comparison
+    const result = generateReportFn(input, this.projectRoot, previousSession);
 
     // Emit event
     this.eventBus.emit({
