@@ -1,689 +1,627 @@
-# Claude Code Guardian - User Guide
+# Code Guardian Studio - User Guide
 
-## Quick Start
+Complete guide to using Code Guardian Studio for code analysis and refactoring.
 
-Khi bắt đầu session, Claude Code sẽ tự động có quyền truy cập vào các tools của CCG. Bạn có thể sử dụng chúng bằng cách yêu cầu Claude thực hiện các tác vụ liên quan.
+## Table of Contents
 
-### Bắt đầu Session
-
-```
-session_init
-```
-
-Khởi tạo session, load memory và kiểm tra trạng thái hệ thống.
-
-### Kết thúc Session
-
-```
-session_end
-```
-
-Lưu tất cả dữ liệu và dọn dẹp trước khi kết thúc.
+1. [Getting Started](#getting-started)
+2. [CLI Commands](#cli-commands)
+3. [Understanding Reports](#understanding-reports)
+4. [Best Practices](#best-practices)
+5. [Under the Hood](#under-the-hood)
+6. [Appendix: MCP Tools for AI Agents](#appendix-mcp-tools-for-ai-agents)
 
 ---
 
-## Tools Reference
+## Getting Started
 
-### 1. Session Tools (Quản lý phiên)
+### New Users: 3-Minute Quickstart
 
-| Tool | Mô tả |
-|------|-------|
-| `session_init` | Khởi tạo session mới |
-| `session_end` | Kết thúc session, lưu dữ liệu |
-| `session_status` | Xem trạng thái session hiện tại |
+If this is your first time using CCG, start here:
+
+```bash
+npm install -g codeguardian-studio
+ccg quickstart
+```
+
+See the [Quickstart Guide](QUICKSTART.md) for detailed walkthrough.
+
+### Experienced Users: Manual Setup
+
+```bash
+# 1. Install
+npm install -g codeguardian-studio
+
+# 2. Initialize
+ccg init
+
+# 3. Configure (optional)
+# Edit .ccg/config.json
+
+# 4. Run analysis
+ccg code-optimize --report
+```
 
 ---
 
-### 2. Memory Tools (Bộ nhớ)
+## CLI Commands
 
-Lưu trữ và truy xuất thông tin giữa các sessions.
+All CCG functionality is available through simple CLI commands. No JSON or tool schemas required.
 
-#### `memory_store` - Lưu thông tin
+### `ccg quickstart`
 
-| Parameter | Required | Mô tả |
-|-----------|----------|-------|
-| `content` | Yes | Nội dung cần lưu |
-| `type` | Yes | Loại: `decision`, `fact`, `code_pattern`, `error`, `note`, `convention`, `architecture` |
-| `importance` | Yes | Mức độ quan trọng (1-10) |
-| `tags` | No | Mảng tags để phân loại |
+**Purpose:** One-command setup and analysis for new users.
 
-**Ví dụ:**
-```json
-{
-  "content": "Dự án sử dụng Vitest cho testing, không dùng Jest",
-  "type": "convention",
-  "importance": 8,
-  "tags": ["testing", "convention"]
-}
+**What it does:**
+- Auto-initializes CCG
+- Scans codebase
+- Analyzes metrics
+- Generates report
+
+**Usage:**
+```bash
+ccg quickstart
 ```
 
-#### `memory_recall` - Tìm kiếm thông tin
-
-| Parameter | Required | Mô tả |
-|-----------|----------|-------|
-| `query` | Yes | Từ khóa tìm kiếm |
-| `type` | No | Lọc theo loại |
-| `limit` | No | Số kết quả tối đa (mặc định: 10) |
-| `minImportance` | No | Mức quan trọng tối thiểu |
-| `tags` | No | Lọc theo tags |
-
-**Ví dụ:**
-```json
-{
-  "query": "authentication",
-  "type": "decision",
-  "minImportance": 7
-}
-```
-
-#### Các tools khác
-
-| Tool | Mô tả |
-|------|-------|
-| `memory_forget` | Xóa memory theo ID |
-| `memory_summary` | Tổng quan về tất cả memories |
-| `memory_list` | Liệt kê memories |
+**When to use:**
+- First time using CCG
+- Quick health check
+- Onboarding new team members
 
 ---
 
-### 3. Guard Tools (Bảo vệ code)
+### `ccg init`
 
-Kiểm tra và phát hiện các vấn đề trong code.
+**Purpose:** Initialize CCG in your project.
 
-#### `guard_validate` - Kiểm tra code
-
-| Parameter | Required | Mô tả |
-|-----------|----------|-------|
-| `code` | Yes | Source code cần kiểm tra |
-| `filename` | Yes | Tên file (để xác định loại file) |
-| `strict` | No | Nếu `true`, warnings sẽ thành errors |
-| `rules` | No | Chỉ định rules cụ thể |
-
-**Các rules có sẵn:**
-
-*Quality Rules:*
-- `fake-test` - Phát hiện tests không có assertions
-- `disabled-feature` - Phát hiện code bị comment out
-- `empty-catch` - Phát hiện catch blocks rỗng
-- `emoji-code` - Phát hiện emoji trong code
-
-*Security Rules (OWASP Top 10):*
-- `sql-injection` - Phát hiện SQL injection (CWE-89)
-- `hardcoded-secrets` - Phát hiện API keys, passwords (CWE-798)
-- `xss-vulnerability` - Phát hiện XSS risks (CWE-79)
-- `command-injection` - Phát hiện OS command injection (CWE-78)
-- `path-traversal` - Phát hiện path traversal (CWE-22)
-
-*AI/LLM Security:*
-- `prompt-injection` - Phát hiện prompt injection vulnerabilities
-
-**Ví dụ:**
-```json
-{
-  "code": "test('should work', () => { /* nothing */ })",
-  "filename": "user.test.ts",
-  "strict": true
-}
+**Usage:**
+```bash
+ccg init                    # Standard profile
+ccg init --profile minimal  # Minimal config
+ccg init --profile strict   # Strict rules
+ccg init --force            # Overwrite existing
 ```
 
-#### `guard_check_test` - Kiểm tra test file
-
-Phân tích file test để phát hiện fake tests.
-
-```json
-{
-  "code": "...",
-  "filename": "auth.test.ts"
-}
-```
-
-#### Các tools khác
-
-| Tool | Mô tả |
-|------|-------|
-| `guard_rules` | Liệt kê tất cả rules |
-| `guard_toggle_rule` | Bật/tắt rule cụ thể |
-| `guard_status` | Trạng thái guard module |
+**What it creates:**
+- `.ccg/` directory
+- `config.json` configuration
+- `.claude/hooks.json` for Claude Code integration
+- `.mcp.json` MCP server config
 
 ---
 
-### 4. Workflow Tools (Quản lý công việc)
+### `ccg code-optimize`
 
-Theo dõi tiến độ và quản lý tasks.
+**Purpose:** Analyze code quality and generate reports.
 
-#### `workflow_task_create` - Tạo task mới
-
-| Parameter | Required | Mô tả |
-|-----------|----------|-------|
-| `name` | Yes | Tên task |
-| `description` | No | Mô tả chi tiết |
-| `priority` | No | `low`, `medium`, `high`, `critical` |
-| `parentId` | No | ID của task cha (subtask) |
-| `estimatedTokens` | No | Ước tính tokens sử dụng |
-| `tags` | No | Tags phân loại |
-
-**Ví dụ:**
-```json
-{
-  "name": "Implement user authentication",
-  "description": "Add login/logout with JWT",
-  "priority": "high",
-  "tags": ["feature", "auth"]
-}
+**Basic usage:**
+```bash
+ccg code-optimize           # Console output
+ccg code-optimize --report  # Generate markdown report
+ccg code-optimize --json    # Output as JSON
 ```
 
-#### `workflow_task_update` - Cập nhật task
+**Common options:**
+```bash
+# Generate human-readable report
+ccg code-optimize --report
 
-```json
-{
-  "taskId": "task-123",
-  "progress": 50,
-  "status": "in_progress"
-}
+# Get JSON for scripts/CI
+ccg code-optimize --json > analysis.json
+
+# See advanced options
+ccg code-optimize --help-advanced
 ```
 
-**Status values:** `pending`, `in_progress`, `paused`, `blocked`, `completed`, `failed`
+**Advanced usage:**
+```bash
+# Focus on complexity instead of file size
+ccg code-optimize --strategy complexity --report
 
-#### `workflow_task_note` - Thêm ghi chú
+# Scan more files (default: 1000)
+ccg code-optimize --max-files 5000 --report
 
-```json
-{
-  "taskId": "task-123",
-  "content": "Cần review lại phần validation",
-  "type": "blocker"
-}
+# Limit hotspots returned
+ccg code-optimize --max-hotspots 10 --report
+
+# Custom report location
+ccg code-optimize --report --output custom-report.md
+
+# CI mode - fail if score exceeds threshold
+ccg code-optimize --ci --threshold 70
+
+# CI with custom threshold
+ccg code-optimize --ci --threshold 50
 ```
 
-**Note types:** `note`, `decision`, `blocker`, `idea`
-
-#### Các tools khác
-
-| Tool | Mô tả |
-|------|-------|
-| `workflow_task_start` | Bắt đầu làm task |
-| `workflow_task_complete` | Đánh dấu hoàn thành |
-| `workflow_task_pause` | Tạm dừng task |
-| `workflow_task_fail` | Đánh dấu thất bại |
-| `workflow_task_list` | Liệt kê tasks |
-| `workflow_current` | Task đang làm |
-| `workflow_status` | Tổng quan workflow |
+**Exit codes (CI mode):**
+- `0` - Success, no hotspots above threshold
+- `1` - Failure, hotspots found above threshold
 
 ---
 
-### 5. Process Tools (Quản lý tiến trình)
+### `ccg status`
 
-Quản lý ports và processes.
+**Purpose:** Check CCG configuration and data.
 
-#### `process_check_port` - Kiểm tra port
-
-```json
-{
-  "port": 3000
-}
+**Usage:**
+```bash
+ccg status       # Human-readable
+ccg status --json # JSON output
 ```
 
-#### `process_kill_on_port` - Kill process trên port
-
-```json
-{
-  "port": 3000,
-  "force": true
-}
-```
-
-#### `process_spawn` - Khởi chạy process
-
-```json
-{
-  "command": "npm",
-  "args": ["run", "dev"],
-  "port": 3000,
-  "name": "dev-server",
-  "cwd": "/path/to/project"
-}
-```
-
-#### Các tools khác
-
-| Tool | Mô tả |
-|------|-------|
-| `process_check_all_ports` | Kiểm tra tất cả ports đã cấu hình |
-| `process_kill` | Kill process theo PID |
-| `process_list` | Liệt kê processes |
-| `process_cleanup` | Dọn dẹp processes của session |
-| `process_status` | Trạng thái module |
+**What it shows:**
+- Initialization status
+- Config file location
+- Memory database status
+- Checkpoints count
+- Active tasks
 
 ---
 
-### 6. Resource Tools (Quản lý tài nguyên)
+### `ccg doctor`
 
-Theo dõi token usage và checkpoints.
+**Purpose:** Diagnose configuration issues.
 
-#### `resource_status` - Trạng thái tài nguyên
-
-Xem token usage hiện tại và số checkpoints.
-
-#### `resource_estimate_task` - Ước tính task
-
-```json
-{
-  "description": "Refactor authentication module",
-  "filesCount": 5,
-  "linesEstimate": 200,
-  "hasTests": true,
-  "hasBrowserTesting": false
-}
+**Usage:**
+```bash
+ccg doctor
 ```
 
-#### `resource_checkpoint_create` - Tạo checkpoint
+**What it checks:**
+- Required directories exist
+- Config files are valid JSON
+- MCP server registration
+- Hooks configuration
 
-```json
-{
-  "name": "before-refactor",
-  "reason": "before_risky_operation"
-}
-```
-
-**Reasons:** `manual`, `before_risky_operation`, `task_complete`
-
-#### Các tools khác
-
-| Tool | Mô tả |
-|------|-------|
-| `resource_update_tokens` | Cập nhật token usage |
-| `resource_checkpoint_list` | Liệt kê checkpoints |
-| `resource_checkpoint_restore` | Khôi phục từ checkpoint |
-| `resource_checkpoint_delete` | Xóa checkpoint |
+**Output:**
+- Errors (blocking issues)
+- Warnings (non-critical)
+- Info (suggestions)
+- Fix commands for each issue
 
 ---
 
-### 7. Testing Tools (Testing)
+## Understanding Reports
 
-Chạy tests và browser automation.
+### Report Structure
 
-#### `testing_run` - Chạy tests
+Generated reports (`docs/reports/optimization-*.md`) include:
 
-```json
-{
-  "files": ["src/auth/*.test.ts"],
-  "grep": "login",
-  "coverage": true,
-  "timeout": 30
-}
+#### 1. Overview
+```
+Repository: your-project
+Scanned: 1,234 files (~45,000 lines)
+Strategy: mixed (complexity + size)
 ```
 
-#### `testing_run_affected` - Chạy tests bị ảnh hưởng
-
-```json
-{
-  "files": ["src/auth/login.ts", "src/auth/logout.ts"]
-}
+#### 2. Metrics Summary
+```
+Files analyzed: 234
+Avg complexity: 12.5
+TODOs: 45
+FIXMEs: 8
 ```
 
-#### Browser Testing Tools
-
-| Tool | Mô tả |
-|------|-------|
-| `testing_browser_open` | Mở browser session |
-| `testing_browser_screenshot` | Chụp screenshot |
-| `testing_browser_logs` | Lấy console logs |
-| `testing_browser_network` | Lấy network requests |
-| `testing_browser_errors` | Lấy errors |
-| `testing_browser_close` | Đóng browser session |
-
-**Ví dụ browser workflow:**
-```json
-// 1. Mở browser
-{ "url": "http://localhost:3000" }
-// Response: { "sessionId": "session-abc" }
-
-// 2. Chụp screenshot
-{ "sessionId": "session-abc", "fullPage": true }
-
-// 3. Xem logs
-{ "sessionId": "session-abc" }
-
-// 4. Đóng browser
-{ "sessionId": "session-abc" }
-```
-
-#### Các tools khác
-
-| Tool | Mô tả |
-|------|-------|
-| `testing_cleanup` | Dọn dẹp test data |
-| `testing_status` | Trạng thái testing module |
-
----
-
-### 8. Documents Tools (Quản lý tài liệu)
-
-Quản lý và theo dõi tài liệu dự án.
-
-#### `documents_search` - Tìm kiếm tài liệu
-
-```json
-{
-  "query": "authentication API"
-}
-```
-
-#### `documents_find_by_type` - Tìm theo loại
-
-```json
-{
-  "type": "api"
-}
-```
-
-**Document types:** `readme`, `spec`, `api`, `guide`, `changelog`, `architecture`, `config`, `other`
-
-#### `documents_should_update` - Kiểm tra nên update không
-
-Trước khi tạo tài liệu mới, kiểm tra xem có document nào liên quan cần update không.
-
-```json
-{
-  "topic": "API Authentication",
-  "content": "New auth documentation..."
-}
-```
-
-#### `documents_create` - Tạo tài liệu mới
-
-```json
-{
-  "path": "docs/api/auth.md",
-  "content": "# Authentication API\n...",
-  "type": "api",
-  "description": "API authentication documentation",
-  "tags": ["api", "auth"]
-}
-```
-
-#### Các tools khác
-
-| Tool | Mô tả |
-|------|-------|
-| `documents_update` | Cập nhật tài liệu |
-| `documents_register` | Đăng ký document vào registry |
-| `documents_scan` | Quét project tìm documents |
-| `documents_list` | Liệt kê tất cả documents |
-| `documents_status` | Trạng thái module |
-
----
-
-### 9. Agents Tools (Multi-Agent)
-
-Quản lý hệ thống multi-agent với các specialized agents.
-
-#### `agents_select` - Chọn agent phù hợp
-
-```json
-{
-  "task": "Implement trading strategy backtest",
-  "files": ["strategy.py", "backtest.py"],
-  "domain": "trading"
-}
-```
-
-**Response:** Agent phù hợp nhất với confidence score.
-
-#### `agents_coordinate` - Phối hợp nhiều agents
-
-```json
-{
-  "task": "Full-stack feature review",
-  "agentIds": ["react-agent", "laravel-agent"],
-  "mode": "review"
-}
-```
-
-**Modes:** `sequential`, `parallel`, `review`
-
-#### Các tools khác
-
-| Tool | Mô tả |
-|------|-------|
-| `agents_list` | Liệt kê tất cả agents |
-| `agents_get` | Chi tiết 1 agent |
-| `agents_register` | Đăng ký agent mới |
-| `agents_reload` | Reload từ AGENTS.md |
-| `agents_status` | Trạng thái module |
-
----
-
-### 10. Latent Chain Mode Tools (Hidden-State Reasoning)
-
-Latent Chain Mode giúp giảm 70-80% token usage bằng cách chỉ gửi delta thay vì full context.
-
-#### Khi nào dùng?
-
-- Task có **2+ bước** trở lên
-- Bug fix phức tạp
-- Feature mới cần thiết kế
-- Refactoring lớn
-
-#### 3 Flow Commands (Quick Start)
-
-| Command | Use Case |
-|---------|----------|
-| `/latent-fix` | Quick fix 1-2 patches, file đang mở |
-| `/latent-feature` | Feature/Refactor nhiều files |
-| `/latent-review` | Review/Audit không sửa code |
-| `/latent-status` | Quick status check |
-
-#### `latent_context_create` - Tạo context mới
-
-```json
-{
-  "taskId": "fix-auth-bug",
-  "phase": "analysis",
-  "constraints": ["No breaking changes", "Must pass tests"],
-  "files": ["src/auth/login.ts"]
-}
-```
-
-#### `latent_context_update` - Update với delta (KEY!)
-
-```json
-{
-  "taskId": "fix-auth-bug",
-  "delta": {
-    "codeMap": { "hotSpots": ["src/auth/login.ts:45"] },
-    "decisions": [{ "id": "D001", "summary": "Use JWT", "rationale": "Industry standard" }],
-    "risks": ["Token expiry handling"]
-  }
-}
-```
-
-**Quan trọng:** Chỉ gửi delta, KHÔNG full context!
-
-#### `latent_phase_transition` - Chuyển phase
-
-```json
-{
-  "taskId": "fix-auth-bug",
-  "toPhase": "plan",
-  "summary": "Analysis complete, identified root cause"
-}
-```
-
-**4 Phases:**
-```
-🔍 analysis → 📋 plan → 🔧 impl → ✅ review
-```
-
-#### `latent_apply_patch` - Apply code changes
-
-```json
-{
-  "taskId": "fix-auth-bug",
-  "target": "src/auth/login.ts",
-  "patch": "--- a/src/auth/login.ts\n+++ b/src/auth/login.ts\n@@ -45,3 +45,5 @@..."
-}
-```
-
-#### `latent_complete_task` - Hoàn thành task
-
-```json
-{
-  "taskId": "fix-auth-bug",
-  "summary": "Fixed token expiry bug"
-}
-```
-
-#### Các tools khác
-
-| Tool | Mô tả |
-|------|-------|
-| `latent_context_get` | Xem context hiện tại |
-| `latent_validate_response` | Validate LatentResponse format |
-| `latent_list_contexts` | Liệt kê tất cả contexts |
-| `latent_delete_context` | Xóa context |
-| `latent_status` | Trạng thái module |
-
----
-
-## Recommended Workflows
-
-### Workflow 1: Bắt đầu session mới
-
-```
-1. session_init          -> Load memory, check processes
-2. workflow_task_list    -> Xem tasks còn dang dở
-3. memory_recall         -> Nhớ lại context quan trọng
-```
-
-### Workflow 2: Làm feature mới
-
-```
-1. workflow_task_create  -> Tạo task cho feature
-2. workflow_task_start   -> Bắt đầu task
-3. resource_checkpoint_create -> Checkpoint trước khi code
-4. ... code ...
-5. guard_validate        -> Kiểm tra code
-6. testing_run           -> Chạy tests
-7. workflow_task_complete -> Hoàn thành task
-8. memory_store          -> Lưu decisions quan trọng
-```
-
-### Workflow 3: Debug UI issues
-
-```
-1. testing_browser_open  -> Mở browser
-2. testing_browser_logs  -> Xem console errors
-3. testing_browser_screenshot -> Chụp UI
-4. testing_browser_network -> Xem network requests
-5. ... fix issues ...
-6. testing_browser_close -> Đóng browser
-```
-
-### Workflow 4: Kết thúc session
-
-```
-1. workflow_task_pause   -> Pause task đang làm (nếu có)
-2. memory_store          -> Lưu context quan trọng
-3. session_end           -> Save all và cleanup
-```
-
-### Workflow 5: Latent Mode cho complex tasks
-
-```
-1. latent_context_create -> Tạo context với constraints
-2. [analysis phase]      -> Xác định hot spots, decisions
-3. latent_context_update -> Update delta (chỉ thay đổi!)
-4. latent_phase_transition -> Chuyển sang plan
-5. [plan phase]          -> Lên kế hoạch patches
-6. latent_phase_transition -> Chuyển sang impl
-7. latent_apply_patch    -> Apply từng patch
-8. latent_phase_transition -> Chuyển sang review
-9. guard_validate        -> Kiểm tra code
-10. testing_run          -> Chạy tests
-11. latent_complete_task -> Hoàn thành
-```
-
-**Hoặc dùng Quick Commands:**
-```
-/latent-fix              -> Quick fix file đang mở
-/latent-feature "..."    -> Feature mới
-/latent-review           -> Review code
-```
+#### 3. Hotspots Table
+
+| Rank | Score | File | Reason | Goal |
+|------|-------|------|--------|------|
+| 1 | 85 | src/payment.ts | Very high complexity: 85, Deep nesting: level 9 | simplify |
+| 2 | 72 | src/api.ts | High complexity: 72, Large file: 650 lines | refactor |
+| 3 | 65 | src/utils.ts | High complexity: 65, Many branches: 45 | split-module |
+
+#### 4. Recommendations
+- Step-by-step refactor plan
+- Estimated effort
+- Risk assessment
+
+### Interpreting Scores
+
+**Complexity Score (0-100):**
+- `0-30`: Healthy code
+- `31-50`: Moderate complexity, monitor
+- `51-70`: High complexity, plan refactor
+- `71-100`: Critical, refactor ASAP
+
+**File size:**
+- < 200 lines: Good
+- 200-500 lines: Acceptable
+- 500-1000 lines: Consider splitting
+- \> 1000 lines: Definitely split
+
+**Nesting depth:**
+- 1-3 levels: Good
+- 4-6 levels: Moderate
+- 7-9 levels: High, needs simplification
+- 10+ levels: Critical, refactor immediately
+
+### Goals Explained
+
+- **simplify**: Reduce complexity (break down functions, reduce nesting)
+- **refactor**: Restructure code architecture
+- **add-tests**: No tests found, add coverage
+- **split-module**: File too large, extract modules
+- **document**: Complex logic needs comments
 
 ---
 
 ## Best Practices
 
-### Memory
+### Regular Analysis
 
-- **DO:** Lưu decisions quan trọng với importance >= 7
-- **DO:** Sử dụng tags nhất quán
-- **DON'T:** Lưu code thực tế (chỉ lưu patterns/snippets nhỏ)
+```bash
+# Before starting major work
+ccg code-optimize --report
 
-### Guard
+# After completing features
+ccg code-optimize --report
 
-- **DO:** Chạy `guard_validate` trước mỗi commit
-- **DO:** Fix tất cả blocking issues
-- **DON'T:** Disable rules chỉ để bỏ qua warnings
+# Compare reports to track improvement
+```
 
-### Workflow
+### CI/CD Integration
 
-- **DO:** Tạo task cho mỗi feature/bug
-- **DO:** Update progress thường xuyên
-- **DO:** Add notes cho blockers và decisions
+Add to your CI pipeline:
 
-### Testing
+```yaml
+# .github/workflows/code-quality.yml
+- name: Code Quality Check
+  run: ccg code-optimize --ci --threshold 70
+```
 
-- **DO:** Chạy affected tests sau mỗi thay đổi
-- **DO:** Cleanup browser sessions sau khi dùng
-- **DON'T:** Để browser sessions mở quá lâu
+### Team Workflow
 
-### Resource
+1. **Weekly health checks:**
+   - Run `ccg code-optimize --report`
+   - Review top 5 hotspots in team meeting
+   - Assign refactor tasks
 
-- **DO:** Tạo checkpoint trước risky operations
-- **DO:** Monitor token usage
-- **DON'T:** Ignore high token warnings
+2. **Before major releases:**
+   - Run full analysis
+   - Address all critical hotspots (score > 70)
+   - Document decisions in Memory
 
-### Latent Mode
+3. **Code reviews:**
+   - Check if PR introduces new hotspots
+   - Use `ccg code-optimize --strategy complexity` on changed files
 
-- **DO:** Luôn dùng cho task 2+ bước
-- **DO:** Gửi delta only, không full context
-- **DO:** Track decisions với IDs (D001, D002...)
-- **DO:** Dùng phase icons trong output (🔍📋🔧✅)
-- **DON'T:** Viết essay giải thích dài
-- **DON'T:** Skip phase transitions
-- **DON'T:** Paste code trực tiếp, dùng apply_patch
+### Configuration Tips
+
+Edit `.ccg/config.json`:
+
+```json
+{
+  "version": "1.0.0",
+  "rules": {
+    "enabled": true,
+    "no-fake-tests": true,
+    "no-disabled-features": true
+  },
+  "optimizer": {
+    "excludePatterns": [
+      "**/node_modules/**",
+      "**/dist/**",
+      "**/*.test.ts"
+    ],
+    "maxFileSize": 524288
+  }
+}
+```
 
 ---
 
-## Troubleshooting
+## Under the Hood
 
-### Memory không load
+This section explains how CCG works internally. You don't need to understand this to use CCG, but it helps if you're curious.
 
+### What is CCG?
+
+Code Guardian Studio is an **MCP (Model Context Protocol) server** that runs locally on your machine. It provides tools that Claude Code (or any MCP-compatible AI) can use to analyze code.
+
+**Key architecture:**
+- **Runs locally**: No cloud APIs, all analysis happens on your machine
+- **MCP server**: Exposes 50+ tools to AI assistants
+- **CLI wrapper**: Human-friendly commands that call MCP tools internally
+
+When you run `ccg quickstart`, here's what happens:
+
+1. **CLI parses your command** → determines you want quickstart
+2. **CLI calls MCP tools internally** → `code_scan_repository`, `code_metrics`, `code_hotspots`
+3. **Results are formatted** → from JSON to human-readable markdown
+4. **Report is saved** → in `docs/reports/`
+
+### Latent Chain Mode
+
+Latent Chain is CCG's approach to **multi-phase reasoning** for complex tasks.
+
+**The problem:**
+- Traditional AI tools handle one-shot tasks (e.g., "analyze this file")
+- Complex tasks (e.g., "refactor entire auth system") need multiple phases
+
+**The solution - 4 phases:**
+
+1. **Analysis**: Understand the problem
+   - Map code structure
+   - Identify dependencies
+   - Note constraints
+
+2. **Plan**: Design the solution
+   - Break down into steps
+   - Identify risks
+   - Estimate effort
+
+3. **Implementation**: Execute the plan
+   - Make code changes
+   - Run tests
+   - Verify correctness
+
+4. **Review**: Validate results
+   - Check all requirements met
+   - Ensure no regressions
+   - Document changes
+
+**How it works:**
+- **Context is persisted** across phases (not re-explained each time)
+- **Decisions are tracked** in a "latent context" (like KV-cache)
+- **Only deltas are communicated** (changes, not full state)
+
+**Example:**
 ```
-1. Kiểm tra file .ccg/memory.db có tồn tại
-2. Chạy session_init lại
+User: "Refactor the authentication system"
+
+Phase 1 (Analysis):
+- AI maps: login.ts, auth-middleware.ts, session.ts
+- Identifies: JWT tokens, passport.js
+- Notes constraint: "No breaking changes to API"
+
+Phase 2 (Plan):
+- AI creates: 5-step refactor plan
+- Risk: Session migration
+- Estimate: 3-4 hours
+
+Phase 3 (Impl):
+- AI edits files, runs tests
+- Uses Memory to recall "No breaking changes"
+
+Phase 4 (Review):
+- AI verifies: All tests pass, API unchanged
+- Documents: New patterns in Memory
 ```
 
-### Port bị chiếm
+**Benefits:**
+- Tasks stay focused per phase
+- Context doesn't explode (only deltas shared)
+- AI can "go back" to earlier phases if needed
 
+### Memory System
+
+CCG has a **persistent memory** that survives across sessions.
+
+**What's stored:**
+- **Decisions**: "Use JWT for auth, not sessions"
+- **Facts**: "Database is PostgreSQL 15"
+- **Code patterns**: Example of how to write tests
+- **Errors**: "Don't use deprecated API X"
+- **Conventions**: "Always use async/await, never callbacks"
+
+**Why it matters:**
+- AI doesn't re-learn your project every session
+- Consistency across refactors
+- Faster analysis (recalls past decisions)
+
+**Storage:**
+- Location: `.ccg/memory.db` (SQLite database)
+- Format: Searchable by tags, type, importance
+- Privacy: 100% local, never leaves your machine
+
+**Example workflow:**
 ```
-1. process_check_port { "port": 3000 }
-2. process_kill_on_port { "port": 3000, "force": true }
+Session 1:
+You: "We use React 18 with hooks, no class components"
+AI: Stores in Memory with importance=9, tags=["react", "convention"]
+
+Session 2 (next week):
+AI: Recalls "React hooks" convention automatically
+AI: Suggests functional component, not class
 ```
 
-### Tests fail không rõ lý do
+### Guard System
 
-```
-1. testing_run với coverage để xem coverage
-2. testing_browser_open để test manual
-3. testing_browser_logs để xem console errors
+Prevents dangerous code patterns before they're committed.
+
+**What it blocks:**
+- **Fake tests**: Tests without assertions
+  ```ts
+  it('should work', async () => {
+    await doSomething();  // ❌ No expect/assert
+  });
+  ```
+
+- **Disabled features**: Skipped tests, commented code
+  ```ts
+  it.skip('important test', () => {  // ❌ Test disabled
+  ```
+
+- **Empty catches**: Silent error swallowing
+  ```ts
+  try {
+    critical();
+  } catch (e) {  // ❌ Empty catch
+  }
+  ```
+
+**When it runs:**
+- Before git commits (via hook)
+- During code generation (AI uses `guard_validate` tool)
+- Manual: `ccg guard-check file.ts`
+
+### Performance
+
+**How fast is analysis?**
+- Small repo (< 5k LOC): ~30 seconds
+- Medium repo (< 30k LOC): ~2 minutes
+- Large repo (< 100k LOC): ~5-8 minutes
+
+**Bottlenecks:**
+- File I/O (reading source files)
+- Metrics calculation (parsing, complexity)
+- Hotspot ranking (sorting, filtering)
+
+**Optimizations:**
+- Parallel file reading
+- Incremental analysis (only changed files)
+- Caching (`.ccg/optimizer-cache.json`)
+
+---
+
+## Appendix: MCP Tools for AI Agents
+
+This section is for AI agents (like Claude) or developers building integrations. **Human users don't need to use these tools directly** - the CLI commands above call them internally.
+
+### Code Optimizer Tools
+
+#### `code_scan_repository`
+Scan project structure and count LOC.
+
+**Parameters:**
+```typescript
+{
+  rootPath?: string;        // Project root (default: cwd)
+  includePatterns?: string[]; // Globs to include
+  excludePatterns?: string[]; // Globs to exclude
+  maxFiles?: number;         // Limit files scanned
+}
 ```
 
-### Guard block code
+#### `code_metrics`
+Calculate complexity metrics for files.
 
+**Parameters:**
+```typescript
+{
+  files: string[];          // File paths to analyze
+  maxFileSizeBytes?: number; // Skip files larger than this
+}
 ```
-1. Đọc kỹ error message
-2. guard_rules để xem rules đang active
-3. Fix issues thay vì disable rules
+
+**Returns:**
+```typescript
+{
+  path: string;
+  lines: number;
+  maxNestingDepth: number;
+  branchScore: number;
+  complexityScore: number;
+  todoCount: number;
+  fixmeCount: number;
+}[]
 ```
+
+#### `code_hotspots`
+Identify files needing attention.
+
+**Parameters:**
+```typescript
+{
+  metrics: CodeMetric[];
+  strategy: 'size' | 'complexity' | 'mixed';
+  maxResults?: number;
+  thresholds?: {
+    minLines?: number;
+    minComplexity?: number;
+    minNesting?: number;
+  };
+}
+```
+
+#### `code_refactor_plan`
+Generate refactor steps.
+
+**Parameters:**
+```typescript
+{
+  hotspots: Hotspot[];
+  goal: 'readability' | 'performance' | 'architecture' | 'testing' | 'mixed';
+  constraints?: string[];
+  maxStepsPerFile?: number;
+}
+```
+
+#### `code_generate_report`
+Create markdown report.
+
+**Parameters:**
+```typescript
+{
+  sessionId: string;
+  scanResult?: ScanResult;
+  metricsBefore?: MetricsResult;
+  hotspots?: HotspotsResult;
+  strategy?: 'size' | 'complexity' | 'mixed';
+  outputPath?: string;
+  registerInDocuments?: boolean;
+  storeInMemory?: boolean;
+}
+```
+
+#### `code_quick_analysis`
+All-in-one: scan + metrics + hotspots.
+
+**Parameters:**
+```typescript
+{
+  maxFiles?: number;
+  maxHotspots?: number;
+  strategy?: 'size' | 'complexity' | 'mixed';
+}
+```
+
+### Memory Tools
+
+- `memory_store` - Save information
+- `memory_recall` - Search memories
+- `memory_forget` - Delete memory by ID
+- `memory_summary` - Overview of all memories
+- `memory_list` - List memories with filters
+
+### Guard Tools
+
+- `guard_validate` - Check code for issues
+- `guard_check_test` - Validate test files
+- `guard_rules` - List available rules
+- `guard_toggle_rule` - Enable/disable rules
+- `guard_status` - Guard module status
+
+### Workflow Tools
+
+- `workflow_task_create` - Create task
+- `workflow_task_start` - Begin working on task
+- `workflow_task_update` - Update progress
+- `workflow_task_complete` - Mark as done
+- `workflow_task_list` - List tasks
+- `workflow_current` - Get active task
+
+### Latent Chain Tools
+
+- `latent_context_create` - Initialize task context
+- `latent_context_get` - Retrieve context
+- `latent_context_update` - Update with delta
+- `latent_phase_transition` - Move between phases
+- `latent_apply_patch` - Apply code changes
+- `latent_complete_task` - Finish task
+
+For complete tool schemas and examples, see the [original Vietnamese guide](USER_GUIDE.md.bak) or use Claude Code's MCP tool discovery.
+
+---
+
+## Getting Help
+
+- **Quickstart issues?** See [QUICKSTART.md](QUICKSTART.md)
+- **Advanced features?** See [LATENT_CHAIN_GUIDE.md](LATENT_CHAIN_GUIDE.md)
+- **GitHub Issues:** https://github.com/phuongrealmax/claude-code-guardian/issues
+- **Website:** https://codeguardian.studio
+
+---
+
+**Last updated:** 2025-12-05

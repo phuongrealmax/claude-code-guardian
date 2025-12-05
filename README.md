@@ -19,18 +19,27 @@ Code Guardian Studio (CCG) is an MCP server that transforms Claude Code into an 
 | Hotspots Found | 20 |
 | Analysis Time | < 1 minute |
 
-## Quick Start
+## 3-Minute Quickstart
+
+Get your first code analysis in one command:
 
 ```bash
 # Install globally
-npm install -g @anthropic-community/claude-code-guardian
+npm install -g codeguardian-studio
 
-# Initialize in your project
-ccg init
-
-# Run code optimization analysis
-ccg code-optimize --report
+# Run quickstart (auto-initializes + analyzes your code)
+ccg quickstart
 ```
+
+That's it! The quickstart command will:
+- Initialize CCG in your project
+- Scan your codebase
+- Analyze code complexity and hotspots
+- Generate a detailed markdown report
+
+Open the generated report and start fixing hotspots (highest score first).
+
+**Want more control?** See [Manual Setup](#manual-setup) or read the full [Quickstart Guide](docs/QUICKSTART.md).
 
 ## Features
 
@@ -68,6 +77,26 @@ ccg code-optimize --report
 - **Case Study:** https://codeguardian.studio/case-study
 - **Partners:** https://codeguardian.studio/partners
 - **GitHub:** https://github.com/phuongrealmax/claude-code-guardian
+
+## Manual Setup
+
+If you prefer step-by-step control:
+
+```bash
+# 1. Install
+npm install -g codeguardian-studio
+
+# 2. Initialize CCG in your project
+ccg init
+
+# 3. Run analysis with custom options
+ccg code-optimize --report
+
+# 4. For advanced options
+ccg code-optimize --help-advanced
+```
+
+See the [User Guide](docs/USER_GUIDE.md) for more details.
 
 ## License
 
