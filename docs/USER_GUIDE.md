@@ -244,6 +244,52 @@ FIXMEs: 8
 - **split-module**: File too large, extract modules
 - **document**: Complex logic needs comments
 
+### Free vs Team Reports
+
+CCG offers two report tiers:
+
+#### Free Tier (dev)
+Basic reports include:
+- Overview (files, lines, root path)
+- Current metrics (complexity, TODOs, FIXMEs)
+- Hotspots table (top 10 issues)
+- Next steps recommendations
+
+This is perfect for individual developers who want to analyze their code.
+
+#### Team Tier (and Enterprise)
+Advanced reports add:
+
+**Tech Debt Summary**
+Track progress over time with deltas:
+```
+| Metric              | Previous | Current | Delta   |
+|---------------------|----------|---------|---------|
+| Hotspots            | 25       | 18      | -7      |
+| Total Score         | 1250     | 890     | -360    |
+| High-complexity     | 12       | 8       | -4      |
+```
+
+**Before vs After Comparison**
+Visual comparison between analysis sessions:
+- Files analyzed, complexity, hotspots side-by-side
+- Highlights improvements automatically
+- Perfect for sprint retrospectives
+
+**ROI Notes**
+Understand business value:
+- Estimated hours saved from addressed hotspots
+- Review time saved from reduced complexity
+- Tips for maximizing team productivity
+
+To upgrade to Team:
+```bash
+# If you have a license key
+ccg activate
+
+# Or visit codeguardian.studio/pricing
+```
+
 ---
 
 ## Best Practices

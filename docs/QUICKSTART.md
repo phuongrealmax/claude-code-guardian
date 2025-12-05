@@ -173,6 +173,25 @@ ccg code-optimize --help-advanced
 ccg code-optimize --ci --threshold 70
 ```
 
+### Track Progress Over Time (Team Tier)
+With a Team license, reports automatically track your progress:
+```bash
+# First analysis
+ccg code-optimize --report
+
+# ... make improvements ...
+
+# Second analysis - shows before/after comparison!
+ccg code-optimize --report
+```
+
+Team reports include:
+- **Tech Debt Summary**: Hotspot count/score deltas
+- **Before vs After**: Visual comparison between sessions
+- **ROI Notes**: Estimated time savings
+
+To upgrade: `ccg activate` or visit [codeguardian.studio/pricing](https://codeguardian.studio/pricing)
+
 ## Common Questions
 
 ### Where is my data stored?
