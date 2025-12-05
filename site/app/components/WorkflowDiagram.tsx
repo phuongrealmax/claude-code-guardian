@@ -4,8 +4,8 @@ export default function WorkflowDiagram() {
   return (
     <div className="workflow-container">
       <svg
-        viewBox="0 0 700 480"
-        className="mx-auto w-full max-w-[360px] sm:max-w-[460px]"
+        viewBox="0 0 700 550"
+        className="mx-auto w-full max-w-[480px] sm:max-w-[640px]"
         style={{ display: 'block', height: 'auto' }}
       >
         {/* Dashed connecting lines - Orthogonal with animated dots */}

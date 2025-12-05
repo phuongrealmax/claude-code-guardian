@@ -295,12 +295,12 @@ export default function Home() {
             </div>
           </div>
 
-          <div style={{marginTop: '40px'}}>
-            <h3 style={{textAlign: 'center', marginBottom: '12px', fontSize: '1.25rem'}}>
+          <div style={{marginTop: '60px'}}>
+            <h3 style={{textAlign: 'center', marginBottom: '16px', fontSize: '1.5rem'}}>
               Agent Collaboration Workflow
             </h3>
-            <p style={{textAlign: 'center', color: 'var(--text-muted)', marginBottom: '20px', fontSize: '0.9rem'}}>
-              How CCG's specialized agents work together
+            <p className="subtitle" style={{marginBottom: '40px'}}>
+              How CCG's specialized agents work together to solve complex tasks
             </p>
             <WorkflowDiagram />
           </div>
@@ -308,7 +308,7 @@ export default function Home() {
       </section>
 
       {/* For Open Source Maintainers */}
-      <section ref={ossRef} className="scroll-fade-in" style={{background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)', paddingTop: '60px', paddingBottom: '60px'}}>
+      <section ref={ossRef} className="scroll-fade-in" style={{background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)'}}>
         <div className="container">
           <h2>For Open Source Maintainers</h2>
           <p className="subtitle">Automate code quality checks on every pull request.</p>
