@@ -160,6 +160,176 @@ program
   });
 
 // ═══════════════════════════════════════════════════════════════
+//                      QUICKSTART COMMAND
+// ═══════════════════════════════════════════════════════════════
+
+program
+  .command('quickstart')
+  .description('Interactive setup and analysis for new users (< 3 minutes)')
+  .action(async () => {
+    const cwd = process.cwd();
+    const ccgDir = join(cwd, '.ccg');
+
+    console.log(chalk.blue('\n  ⚡ CCG Quickstart - Get started in 3 minutes!\n'));
+    console.log(chalk.dim('  This will guide you through your first code analysis.\n'));
+
+    try {
+      // Step 1: Auto-initialize if needed
+      if (!existsSync(ccgDir)) {
+        console.log(chalk.yellow('  Setting up CCG in this project...\n'));
+
+        // Create directories
+        const directories = [
+          ccgDir,
+          join(ccgDir, 'checkpoints'),
+          join(ccgDir, 'tasks'),
+          join(ccgDir, 'registry'),
+          join(ccgDir, 'logs'),
+          join(ccgDir, 'screenshots'),
+          join(cwd, '.claude'),
+          join(cwd, '.claude', 'commands'),
+        ];
+
+        for (const dir of directories) {
+          if (!existsSync(dir)) {
+            mkdirSync(dir, { recursive: true });
+          }
+        }
+
+        // Create minimal config
+        const templateDir = findTemplateDir();
+        const configSource = join(templateDir, 'config.standard.json');
+        const configFallback = join(templateDir, 'config.template.json');
+        const configTarget = join(ccgDir, 'config.json');
+
+        if (existsSync(configSource)) {
+          copyFileSync(configSource, configTarget);
+        } else if (existsSync(configFallback)) {
+          copyFileSync(configFallback, configTarget);
+        } else {
+          // Create default config
+          const defaultConfig = {
+            version: '1.0.0',
+            rules: { enabled: true },
+            memory: { enabled: true },
+            workflow: { enabled: true },
+          };
+          writeFileSync(configTarget, JSON.stringify(defaultConfig, null, 2));
+        }
+
+        // Create hooks.json
+        const hooksPath = join(cwd, '.claude', 'hooks.json');
+        if (!existsSync(hooksPath)) {
+          const hooksContent = { 'user-prompt-submit': '' };
+          writeFileSync(hooksPath, JSON.stringify(hooksContent, null, 2));
+        }
+
+        // Create slash command
+        const ccgCommandPath = join(cwd, '.claude', 'commands', 'ccg.md');
+        if (!existsSync(ccgCommandPath)) {
+          const ccgCommandContent = '# CCG Dashboard\n\nShow the CCG status dashboard.\n\n```bash\nccg status\n```';
+          writeFileSync(ccgCommandPath, ccgCommandContent);
+        }
+
+        // Update .mcp.json
+        const mcpPath = join(cwd, '.mcp.json');
+        let mcpConfig: any = { mcpServers: {} };
+        if (existsSync(mcpPath)) {
+          try {
+            mcpConfig = JSON.parse(readFileSync(mcpPath, 'utf-8'));
+          } catch { /* ignore */ }
+        }
+
+        if (!mcpConfig.mcpServers) {
+          mcpConfig.mcpServers = {};
+        }
+
+        if (!mcpConfig.mcpServers['claude-code-guardian']) {
+          mcpConfig.mcpServers['claude-code-guardian'] = {
+            command: 'node',
+            args: [join(cwd, 'node_modules', 'codeguardian-studio', 'dist', 'index.js')],
+          };
+          writeFileSync(mcpPath, JSON.stringify(mcpConfig, null, 2));
+        }
+
+        console.log(chalk.green('  ✓ CCG initialized\n'));
+      } else {
+        console.log(chalk.green('  ✓ CCG already initialized\n'));
+      }
+
+      // Step 2: Run code analysis
+      console.log(chalk.blue('  Starting Quick Analysis...\n'));
+      console.log(chalk.dim('  Scanning your codebase for optimization opportunities...\n'));
+
+      // Import and run code optimizer
+      const { EventBus } = await import('../core/event-bus.js');
+      const { Logger } = await import('../core/logger.js');
+      const { CodeOptimizerService } = await import('../modules/code-optimizer/code-optimizer.service.js');
+
+      const eventBus = new EventBus();
+      const logger = new Logger('info', 'quickstart');
+      const service = new CodeOptimizerService({}, eventBus, logger, cwd);
+      await service.initialize();
+
+      // Run quick analysis
+      const result = await service.quickAnalysis({
+        maxFiles: 1000,
+        maxHotspots: 20,
+        strategy: 'mixed',
+      });
+
+      const avgComplexity = result.metrics.aggregate.avgComplexityScore;
+
+      console.log(chalk.blue('  ═════════════════════════════════════════════════\n'));
+      console.log(chalk.bold('  ANALYSIS COMPLETE\n'));
+      console.log(`  Files analyzed: ${chalk.cyan(result.metrics.files.length)}`);
+      console.log(`  Avg complexity: ${chalk.cyan(avgComplexity.toFixed(1))}`);
+      console.log(`  Hotspots found: ${chalk.cyan(result.hotspots.hotspots.length)}`);
+
+      if (result.hotspots.hotspots.length > 0) {
+        console.log(`\n  ${chalk.yellow('⚠')}  Top issues to address:\n`);
+        result.hotspots.hotspots.slice(0, 3).forEach((h: any, i: number) => {
+          console.log(`    ${i + 1}. ${chalk.dim(h.path)}`);
+          console.log(`       ${chalk.yellow(h.reasons[0])}\n`);
+        });
+      } else {
+        console.log(chalk.green('\n  ✓ No major hotspots detected - your code looks good!\n'));
+      }
+
+      console.log(chalk.blue('  ═════════════════════════════════════════════════\n'));
+
+      // Step 3: Generate report
+      console.log(chalk.dim('  Generating detailed report...\n'));
+
+      const sessionId = `quickstart-${Date.now()}`;
+      const reportResult = service.generateReport({
+        sessionId,
+        strategy: 'mixed',
+        scanResult: result.scan,
+        metricsBefore: result.metrics,
+        hotspots: result.hotspots,
+      });
+
+      console.log(chalk.green(`  ✓ Report saved: ${chalk.cyan(reportResult.reportPath)}\n`));
+
+      // Step 4: Next steps
+      console.log(chalk.blue('  NEXT STEPS:\n'));
+      console.log(`    1. ${chalk.cyan('Open the report:')} ${reportResult.reportPath}`);
+      console.log(`    2. ${chalk.cyan('Start fixing hotspots')} (highest score first)`);
+      console.log(`    3. ${chalk.cyan('Run analysis again')} to track improvement\n`);
+
+      console.log(chalk.dim('  Tip: Use ') + chalk.cyan('ccg code-optimize --help') + chalk.dim(' for more options\n'));
+
+      await service.shutdown();
+
+    } catch (error) {
+      console.error(chalk.red('\n  Quickstart failed:'), error);
+      console.log(chalk.yellow('\n  Try running ') + chalk.cyan('ccg init') + chalk.yellow(' and ') + chalk.cyan('ccg code-optimize --report') + chalk.yellow(' separately.\n'));
+      process.exit(1);
+    }
+  });
+
+// ═══════════════════════════════════════════════════════════════
 //                      STATUS COMMAND
 // ═══════════════════════════════════════════════════════════════
 
