@@ -12,7 +12,7 @@
  * - hook: Execute hooks (used by Claude Code)
  */
 
-import { Command } from 'commander';
+import { Command, Option } from 'commander';
 import chalk from 'chalk';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
@@ -423,17 +423,24 @@ program.addCommand(createHookCommand());
 //                      CODE-OPTIMIZE COMMAND
 // ═══════════════════════════════════════════════════════════════
 
-program
+const codeOptimizeCmd = program
   .command('code-optimize')
-  .description('Analyze and optimize codebase using CCG Code Optimizer')
+  .description('Analyze and optimize codebase (Quick Analysis preset)\n\n' +
+    'Examples:\n' +
+    '  ccg code-optimize              # Quick scan with defaults\n' +
+    '  ccg code-optimize --report     # Generate markdown report\n' +
+    '  ccg code-optimize --json       # Output as JSON\n\n' +
+    'For advanced options, use: ccg code-optimize --help-advanced')
   .option('-r, --report', 'Generate optimization report')
-  .option('-s, --strategy <strategy>', 'Scoring strategy (size, complexity, mixed)', 'mixed')
-  .option('-m, --max-files <number>', 'Maximum files to scan', '1000')
-  .option('-t, --max-hotspots <number>', 'Maximum hotspots to return', '20')
-  .option('-o, --output <path>', 'Custom report output path')
   .option('-j, --json', 'Output results as JSON')
-  .option('--ci', 'CI mode - exit with error code if hotspots exceed threshold')
-  .option('--threshold <number>', 'Hotspot score threshold for CI mode', '50')
+  .option('--help-advanced', 'Show advanced options for power users')
+  // Advanced options (hidden from main help, but still functional)
+  .addOption(new Option('-s, --strategy <strategy>', 'Scoring strategy (size, complexity, mixed)').default('mixed').hideHelp())
+  .addOption(new Option('-m, --max-files <number>', 'Maximum files to scan').default('1000').hideHelp())
+  .addOption(new Option('-t, --max-hotspots <number>', 'Maximum hotspots to return').default('20').hideHelp())
+  .addOption(new Option('-o, --output <path>', 'Custom report output path').hideHelp())
+  .addOption(new Option('--ci', 'CI mode - exit with error code if hotspots exceed threshold').hideHelp())
+  .addOption(new Option('--threshold <number>', 'Hotspot score threshold for CI mode').default('50').hideHelp())
   .action(async (options: {
     report?: boolean;
     strategy?: string;
@@ -443,7 +450,30 @@ program
     json?: boolean;
     ci?: boolean;
     threshold?: string;
+    helpAdvanced?: boolean;
   }) => {
+    // Handle --help-advanced
+    if (options.helpAdvanced) {
+      console.log(chalk.blue('\n  CCG Code Optimizer - Advanced Options\n'));
+      console.log('Usage: ccg code-optimize [options]\n');
+      console.log('Basic Options:');
+      console.log('  -r, --report                    Generate optimization report');
+      console.log('  -j, --json                      Output results as JSON');
+      console.log('  --help-advanced                 Show this help\n');
+      console.log('Advanced Options (for power users):');
+      console.log('  -s, --strategy <strategy>       Scoring strategy: size, complexity, or mixed (default: mixed)');
+      console.log('  -m, --max-files <number>        Maximum files to scan (default: 1000)');
+      console.log('  -t, --max-hotspots <number>     Maximum hotspots to return (default: 20)');
+      console.log('  -o, --output <path>             Custom report output path');
+      console.log('  --ci                            CI mode - exit with error if hotspots exceed threshold');
+      console.log('  --threshold <number>            Hotspot score threshold for CI mode (default: 50)\n');
+      console.log('Examples:');
+      console.log('  ccg code-optimize --strategy size --max-files 5000');
+      console.log('  ccg code-optimize --ci --threshold 70');
+      console.log('  ccg code-optimize --report --output custom-report.md\n');
+      return;
+    }
+
     const cwd = process.cwd();
     const ccgDir = join(cwd, '.ccg');
 
