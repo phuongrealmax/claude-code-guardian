@@ -33,6 +33,12 @@ export default function Header() {
           >
             Partners
           </Link>
+          <Link
+            href="/pricing"
+            className={`nav-link ${pathname === '/pricing' ? 'active' : ''}`}
+          >
+            Pricing
+          </Link>
           <a
             href="https://github.com/phuongrealmax/claude-code-guardian"
             className="nav-link"
@@ -67,6 +73,12 @@ export default function Header() {
           className={`nav-link ${pathname === '/partners' ? 'active' : ''}`}
         >
           Partners
+        </Link>
+        <Link
+          href="/pricing"
+          className={`nav-link ${pathname === '/pricing' ? 'active' : ''}`}
+        >
+          Pricing
         </Link>
         <a
           href="https://github.com/phuongrealmax/claude-code-guardian"

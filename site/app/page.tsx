@@ -2,6 +2,7 @@
 
 import Footer from './components/Footer'
 import WorkflowDiagram from './components/WorkflowDiagram'
+import CheckoutButton from './components/CheckoutButton'
 import { useScrollAnimation } from './hooks/useScrollAnimation'
 
 export default function Home() {
@@ -371,7 +372,7 @@ export default function Home() {
                 <li>VS Code extension</li>
                 <li>Email support</li>
               </ul>
-              <a href="mailto:hello@codeguardian.studio?subject=Team Tier Interest" className="btn btn-primary">Start Trial</a>
+              <CheckoutButton tier="team" className="btn btn-primary">Start Trial</CheckoutButton>
             </div>
 
             <div className="pricing-card scroll-scale">
@@ -386,7 +387,7 @@ export default function Home() {
                 <li>Dedicated cloud backend</li>
                 <li>SLA + dedicated support</li>
               </ul>
-              <a href="mailto:hello@codeguardian.studio?subject=Enterprise Inquiry" className="btn btn-secondary">Contact Sales</a>
+              <CheckoutButton tier="enterprise" className="btn btn-secondary">Contact Sales</CheckoutButton>
             </div>
           </div>
         </div>
