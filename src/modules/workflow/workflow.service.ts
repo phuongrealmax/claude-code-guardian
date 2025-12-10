@@ -289,37 +289,29 @@ export class WorkflowService {
   }
 
   getTasks(filter?: TaskFilter): Task[] {
-    let tasks = Array.from(this.tasks.values());
-
-    if (filter) {
-      if (filter.status) {
-        const statuses = Array.isArray(filter.status) ? filter.status : [filter.status];
-        tasks = tasks.filter(t => statuses.includes(t.status));
-      }
-
-      if (filter.priority) {
-        const priorities = Array.isArray(filter.priority) ? filter.priority : [filter.priority];
-        tasks = tasks.filter(t => priorities.includes(t.priority));
-      }
-
-      if (filter.tags && filter.tags.length > 0) {
-        tasks = tasks.filter(t => filter.tags!.some(tag => t.tags.includes(tag)));
-      }
-
-      if (filter.parentId !== undefined) {
-        tasks = tasks.filter(t => t.parentId === filter.parentId);
-      }
-    }
-
-    // Sort by priority then by date
-    const priorityOrder: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3 };
-    tasks.sort((a, b) => {
-      const priorityDiff = priorityOrder[a.priority] - priorityOrder[b.priority];
-      if (priorityDiff !== 0) return priorityDiff;
-      return b.updatedAt.getTime() - a.updatedAt.getTime();
-    });
-
+    const tasks = Array.from(this.tasks.values())
+      .filter(t => this.matchesFilter(t, filter))
+      .sort((a, b) => this.compareTasks(a, b));
     return tasks;
+  }
+
+  private matchesFilter(task: Task, filter?: TaskFilter): boolean {
+    if (!filter) return true;
+    const matchStatus = !filter.status || this.toArray(filter.status).includes(task.status);
+    const matchPriority = !filter.priority || this.toArray(filter.priority).includes(task.priority);
+    const matchTags = !filter.tags?.length || filter.tags.some(tag => task.tags.includes(tag));
+    const matchParent = filter.parentId === undefined || task.parentId === filter.parentId;
+    return matchStatus && matchPriority && matchTags && matchParent;
+  }
+
+  private toArray<T>(value: T | T[]): T[] {
+    return Array.isArray(value) ? value : [value];
+  }
+
+  private compareTasks(a: Task, b: Task): number {
+    const priorityOrder: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3 };
+    const priorityDiff = priorityOrder[a.priority] - priorityOrder[b.priority];
+    return priorityDiff !== 0 ? priorityDiff : b.updatedAt.getTime() - a.updatedAt.getTime();
   }
 
   getTaskList(): TaskSummary[] {
@@ -341,15 +333,16 @@ export class WorkflowService {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
+    const countByStatus = (status: Task['status']) => tasks.filter(t => t.status === status).length;
+    const completedToday = tasks.filter(t =>
+      t.status === 'completed' && t.completedAt && t.completedAt >= today
+    ).length;
+
     return {
       currentTask: this.getCurrentTask(),
-      pendingCount: tasks.filter(t => t.status === 'pending').length,
-      inProgressCount: tasks.filter(t => t.status === 'in_progress').length,
-      completedToday: tasks.filter(t =>
-        t.status === 'completed' &&
-        t.completedAt &&
-        t.completedAt >= today
-      ).length,
+      pendingCount: countByStatus('pending'),
+      inProgressCount: countByStatus('in_progress'),
+      completedToday,
       totalTasks: tasks.length,
     };
   }
