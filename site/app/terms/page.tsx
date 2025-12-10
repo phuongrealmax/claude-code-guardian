@@ -11,7 +11,7 @@ export default function Terms() {
       <section className="hero">
         <div className="container">
           <h1>Terms of Service</h1>
-          <p className="subtitle">Last updated: December 4, 2025</p>
+          <p className="subtitle">Last updated: December 10, 2025</p>
         </div>
       </section>
 
