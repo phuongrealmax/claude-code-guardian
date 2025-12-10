@@ -34,14 +34,15 @@ Thumbs.db
 coverage
 .nyc_output
 
-# CCG internal
-.ccg/test-results
-.ccg/screenshots
-.ccg/memory.db-*
-.ccg/checkpoints/*.json
+# CCG internal data (entire folder)
+.ccg/
 
 # Internal documentation (not for public)
 internal/
+
+# Internal development files (not for public repo)
+dogfood-cgs.json
+CHANGELOG.md
 
 # Temporary files
 *.tmp
