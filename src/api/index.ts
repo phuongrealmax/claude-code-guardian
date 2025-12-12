@@ -7,14 +7,7 @@ import { EventBus } from '../core/event-bus.js';
 import { Logger } from '../core/logger.js';
 import { CCGConfig } from '../core/types.js';
 
-import { MemoryModule } from '../modules/memory/index.js';
-import { GuardModule } from '../modules/guard/index.js';
-import { WorkflowModule } from '../modules/workflow/index.js';
-import { ProcessModule } from '../modules/process/index.js';
-import { DocumentsModule } from '../modules/documents/index.js';
-import { AgentsModule } from '../modules/agents/index.js';
-import { LatentModule, DEFAULT_LATENT_CONFIG } from '../modules/latent/index.js';
-
+import { createModules, initializeModules } from '../core/module-factory.js';
 import { createAPIServer, CCGModulesForAPI } from './http-server.js';
 
 async function main() {
@@ -41,60 +34,22 @@ async function main() {
     config = configManager.getDefaultConfig();
   }
 
-  // Resolve paths
-  const memoryConfig = {
-    ...config.modules.memory,
-    persistPath: configManager.resolvePath(config.modules.memory.persistPath),
-  };
+  // Create all modules using ModuleFactory (for consistency)
+  const allModules = createModules(config, configManager, eventBus, logger, projectRoot);
 
-  const agentsConfig = config.modules.agents || {
-    enabled: true,
-    agentsFilePath: 'AGENTS.md',
-    agentsDir: '.claude/agents',
-    autoReload: true,
-    enableCoordination: true,
-  };
-
-  // Initialize modules
+  // Extract only modules needed for HTTP API
   const modules: CCGModulesForAPI = {
-    memory: new MemoryModule(memoryConfig, eventBus, logger),
-    guard: new GuardModule(config.modules.guard, eventBus, logger),
-    workflow: new WorkflowModule(config.modules.workflow, eventBus, logger, projectRoot),
-    process: new ProcessModule(config.modules.process, eventBus, logger),
-    documents: new DocumentsModule(config.modules.documents, eventBus, logger, projectRoot),
-    agents: new AgentsModule(agentsConfig, eventBus, logger, projectRoot),
-    latent: new LatentModule(config.modules.latent || DEFAULT_LATENT_CONFIG, eventBus, logger, projectRoot),
+    memory: allModules.memory,
+    guard: allModules.guard,
+    workflow: allModules.workflow,
+    process: allModules.process,
+    documents: allModules.documents,
+    agents: allModules.agents,
+    latent: allModules.latent,
   };
 
-  // Initialize all modules
-  const initPromises: Promise<void>[] = [];
-
-  if (config.modules.memory.enabled) {
-    initPromises.push(modules.memory.initialize());
-  }
-  if (config.modules.guard.enabled) {
-    initPromises.push(modules.guard.initialize());
-  }
-  if (config.modules.workflow.enabled) {
-    initPromises.push(modules.workflow.initialize());
-  }
-  if (config.modules.process.enabled) {
-    initPromises.push(modules.process.initialize());
-  }
-  if (config.modules.documents.enabled) {
-    initPromises.push(modules.documents.initialize());
-  }
-  if (agentsConfig.enabled) {
-    initPromises.push(modules.agents.initialize());
-  }
-
-  const latentConfig = config.modules.latent || DEFAULT_LATENT_CONFIG;
-  if (latentConfig.enabled) {
-    initPromises.push(modules.latent.initialize());
-  }
-
-  await Promise.all(initPromises);
-  logger.info('All modules initialized');
+  // Initialize modules (ModuleFactory handles enabled checks)
+  await initializeModules(allModules, config, logger);
 
   // Create and start API server
   const { start } = createAPIServer(

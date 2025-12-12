@@ -2,6 +2,8 @@
 
 > AI-powered code refactor engine for large repositories, built on Claude Code + MCP.
 
+**Version:** 4.0.0 | **License:** MIT (open-core)
+
 **Website & Docs:** https://codeguardian.studio
 
 ---
@@ -67,9 +69,13 @@ Open the generated report and start fixing hotspots (highest score first).
 
 | Plan | Price | Best For |
 |------|-------|----------|
-| Dev | Free | Solo devs & side projects |
-| Team | $39/mo | Product teams & agencies |
+| Dev | Free | Solo devs, fully offline |
+| Team | $19/mo | Product teams & agencies |
 | Enterprise | Custom | Large orgs & compliance |
+
+Dev tier is 100% local and self-hostable. Team/Enterprise require license validation via `api.codeguardian.studio`.
+
+See [License Tiers](docs/USER_GUIDE.md#license-tiers) for feature comparison.
 
 ## Links
 
@@ -98,9 +104,73 @@ ccg code-optimize --help-advanced
 
 See the [User Guide](docs/USER_GUIDE.md) for more details.
 
+## Installation Requirements
+
+CCG uses `better-sqlite3` (native SQLite bindings) which requires build tools on your system:
+
+### Linux (Ubuntu/Debian)
+```bash
+sudo apt-get update
+sudo apt-get install build-essential python3
+npm install -g codeguardian-studio
+```
+
+### macOS
+```bash
+# Install Xcode Command Line Tools
+xcode-select --install
+
+npm install -g codeguardian-studio
+```
+
+### Windows
+```bash
+# Install Visual Studio Build Tools
+# Download from: https://visualstudio.microsoft.com/downloads/
+
+npm install -g codeguardian-studio
+```
+
+### Docker
+```dockerfile
+FROM node:20-slim
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    python3 \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN npm install -g codeguardian-studio
+```
+
+### Troubleshooting
+
+**Error: `gyp ERR! stack Error: not found: make`**
+- Solution: Install build tools (see above for your OS)
+
+**Error: `Module did not self-register`**
+- Solution: Node.js version mismatch. Rebuild with:
+  ```bash
+  npm rebuild better-sqlite3
+  ```
+
+**ARM64 compatibility:**
+- ✅ Supported on Apple Silicon (M1/M2/M3)
+- ✅ Supported on Ubuntu ARM64
+- May require build from source on some platforms
+
+## Documentation
+
+- [User Guide](docs/USER_GUIDE.md) - Complete feature documentation
+- [Quickstart](docs/QUICKSTART.md) - Get started in 3 minutes
+- [Migration Guide](docs/MIGRATION_OPEN_CORE.md) - Upgrading to v4.0.0
+- [License System](docs/LICENSE_SYSTEM.md) - Open-core architecture
+- [Changelog](CHANGELOG.md) - Version history
+
 ## License
 
-MIT
+MIT (open-core). See [LICENSE](LICENSE) for details.
 
 ---
 
