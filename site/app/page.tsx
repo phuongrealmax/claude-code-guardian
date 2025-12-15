@@ -128,7 +128,7 @@ export default function Home() {
               </div>
               <h3>IDE-Native</h3>
               <p>
-                VS Code extension shows Tech Debt Index in your status bar.
+                VS Code integration (Team) shows Tech Debt Index in your status bar.
                 <strong>Context Profiles</strong> auto-detect VSCode, Cursor, or CLI mode.
               </p>
             </div>
@@ -184,7 +184,7 @@ export default function Home() {
               <span className="badge" style={{marginBottom: '12px', fontSize: '0.7rem', background: 'var(--primary)'}}>Team / Enterprise</span>
               <h3>Integrate with Your Workflow</h3>
               <p>
-                <strong>GitHub Action</strong> PR comments + quality gates. VS Code extension.
+                <strong>GitHub Action</strong> PR comments + quality gates. VS Code integration (Team).
                 Multi-repo config for monorepos. Claude Code MCP integration.
               </p>
             </div>
@@ -283,7 +283,7 @@ export default function Home() {
                 ccg quickstart
               </div>
               <p style={{marginTop: '12px', fontSize: '0.875rem', opacity: 0.8}}>
-                Scans repo, finds hotspots, writes markdown report to <code>docs/reports/</code>. Works offline.
+                Scans repo, finds hotspots, generates local report in <code>docs/reports/</code> (gitignored). Works offline.
               </p>
             </div>
             <div className="feature-card stagger-item">
@@ -339,7 +339,7 @@ export default function Home() {
 
           <div style={{marginTop: '40px', textAlign: 'center'}}>
             <div className="code-block" style={{display: 'inline-block', textAlign: 'left', fontSize: '0.875rem'}}>
-              # .github/workflows/ccg-pr.yml<br/>
+              # .github/workflows/codeguardian-pr.yml<br/>
               - run: npx codeguardian-studio code-optimize --ci --threshold 70
             </div>
           </div>
@@ -493,10 +493,10 @@ export default function Home() {
             ccg quickstart
           </div>
           <p style={{marginTop: '16px', opacity: 0.8, fontSize: '0.9rem'}}>
-            That's it. Report appears in <code>docs/reports/</code>.
+            That's it. Local report generated in <code>docs/reports/</code> (gitignored).
           </p>
           <div style={{marginTop: '32px'}}>
-            <a href="https://github.com/phuongrealmax/claude-code-guardian" className="btn btn-primary" target="_blank" rel="noopener noreferrer">
+            <a href="https://github.com/phuongrealmax/claude-code-guardian/tree/public/open-core-release" className="btn btn-primary" target="_blank" rel="noopener noreferrer">
               View on GitHub
             </a>
             {' '}

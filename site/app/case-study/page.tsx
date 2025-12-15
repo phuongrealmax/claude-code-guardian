@@ -230,7 +230,7 @@ export default function CaseStudy() {
               </div>
               <p>
                 Scanned 173 files, calculated metrics for each, and ranked them
-                by composite score in under 1 second. Report written to <code>docs/reports/</code>.
+                by composite score in under 1 second. Local report generated in <code>docs/reports/</code> (gitignored).
               </p>
             </div>
             <div className="feature-card">
@@ -379,7 +379,7 @@ export default function CaseStudy() {
           <div style={{marginTop: '32px'}}>
             <a href="/" className="btn btn-primary">Back to Home</a>
             {' '}
-            <a href="https://github.com/phuongrealmax/claude-code-guardian" className="btn btn-secondary" target="_blank" rel="noopener noreferrer">
+            <a href="https://github.com/phuongrealmax/claude-code-guardian/tree/public/open-core-release" className="btn btn-secondary" target="_blank" rel="noopener noreferrer">
               View on GitHub
             </a>
           </div>

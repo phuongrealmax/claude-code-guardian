@@ -48,7 +48,7 @@ export default function Pricing() {
                 <li>TDI trends & session history</li>
                 <li>Multi-repo config</li>
                 <li>PR hotspot comments</li>
-                <li>VS Code extension</li>
+                <li>VS Code integration</li>
                 <li>Email support</li>
               </ul>
               <CheckoutButton tier="team" className="btn btn-primary">Start 14-Day Trial</CheckoutButton>
@@ -172,7 +172,7 @@ export default function Pricing() {
                   <td className="check">&#10003;</td>
                 </tr>
                 <tr>
-                  <td>VS Code Extension</td>
+                  <td>VS Code Integration</td>
                   <td className="dash">-</td>
                   <td className="check">&#10003;</td>
                   <td className="check">&#10003;</td>
@@ -297,6 +297,38 @@ export default function Pricing() {
               <p style={{lineHeight: 1.8}}>
                 We offer a 30-day money-back guarantee. If you're not satisfied,
                 contact us and we'll process a full refund.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Open-core vs Paid */}
+      <section style={{background: 'rgba(255,255,255,0.02)'}}>
+        <div className="container">
+          <h2>Open-Core vs Paid</h2>
+          <p className="subtitle">Understand what runs locally vs cloud-powered.</p>
+
+          <div className="features-grid" style={{marginTop: '40px'}}>
+            <div className="feature-card" style={{textAlign: 'left'}}>
+              <h3>Open-Core (Public)</h3>
+              <p style={{lineHeight: 1.8}}>
+                The CLI, local analysis, MCP tools, and core hotspot detection run <strong>100% offline</strong>.
+                No license required for the Dev tier. Source code available on GitHub.
+              </p>
+            </div>
+            <div className="feature-card" style={{textAlign: 'left'}}>
+              <h3>Team (Paid)</h3>
+              <p style={{lineHeight: 1.8}}>
+                Advanced reports, TDI trends, VS Code integration, and session history.
+                Requires license key validated via <code>api.codeguardian.studio</code>.
+              </p>
+            </div>
+            <div className="feature-card" style={{textAlign: 'left'}}>
+              <h3>Enterprise (Paid)</h3>
+              <p style={{lineHeight: 1.8}}>
+                Everything in Team plus SSO, audit logs, SLA, and <strong>dedicated cloud backend</strong>.
+                Custom integrations and priority support.
               </p>
             </div>
           </div>
