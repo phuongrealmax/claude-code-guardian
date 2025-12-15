@@ -24,6 +24,7 @@ This branch contains the public open-core release of Claude Code Guardian.
 | `tests/` | Dev-only, not needed for users |
 | `internal/` | Private dev materials (gitignored) |
 | `.ccg/` | Session data (gitignored) |
+| `dist/` | Build output (gitignored, built on demand via `npm run build`) |
 | `coverage/`, `playwright-report/` | Test artifacts (gitignored) |
 
 ## What's Private (Never Tracked)
@@ -88,3 +89,37 @@ This release follows the **open-core model**:
 - **Gateway abstraction**: `@ccg/cloud-client` provides offline-first caching
 
 The actual billing and license management happens on `api.codeguardian.studio` (not included in this repo).
+
+---
+
+## Paid Integration Stubs
+
+The following files contain **client-side integration stubs only** (no billing backend):
+
+| File | Purpose | Notes |
+|------|---------|-------|
+| `src/modules/license/stripe.service.ts` | Stripe client stub | Reads from env vars only |
+| `src/modules/license/paddle.service.ts` | Paddle client stub | Reads from env vars only |
+| `packages/cloud-client/` | License gateway | STUB impl - parses key format locally |
+
+**No billing backend code is included.** All payment processing happens on external infrastructure.
+
+---
+
+## Build Instructions
+
+```bash
+# Install dependencies
+npm ci
+
+# Type check (non-emitting)
+npm run typecheck
+
+# Build to dist/
+npm run build
+
+# Verify installation
+node dist/index.js --help
+```
+
+Build generates `dist/` which is gitignored and built on demand.
