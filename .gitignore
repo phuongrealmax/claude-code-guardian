@@ -34,6 +34,13 @@ Thumbs.db
 coverage
 .nyc_output
 
+# Playwright / Testing artifacts
+playwright-report/
+test-results/
+traces/
+screenshots/
+logs/
+
 # CCG internal data (entire folder)
 .ccg/
 
@@ -57,3 +64,32 @@ site/out
 
 # Vercel
 .vercel
+
+# ═══════════════════════════════════════════════════════════════
+# SENSITIVE / INTERNAL FILES (Added 2025-12-12)
+# ═══════════════════════════════════════════════════════════════
+
+# Executable binaries at root (installers, etc.)
+/*.exe
+/*.msi
+/*.dmg
+/*.app
+
+# Internal server configuration with IPs
+CCG_SERVER_INFO.md
+
+# Generated optimization reports (may contain internal paths)
+docs/reports/
+
+# VS Code extension development (has its own repo)
+vscode-extension/
+
+# Test repositories
+tests/integration/test-repo/
+
+# Cloud client package (internal)
+# packages/cloud-client/  # Uncomment if should be private
+
+# Debug/dogfood files
+dogfood-*.json
+*-dogfood.json
