@@ -1444,6 +1444,8 @@ Prevents dangerous code patterns before they're committed.
 
 This section is for AI agents (like Claude) or developers building integrations. **Human users don't need to use these tools directly** - the CLI commands above call them internally.
 
+> **See Also:** [TOOLS_REFERENCE.md](./TOOLS_REFERENCE.md) for a complete auto-generated list of all 160+ MCP tools.
+
 ### Code Optimizer Tools
 
 #### `code_scan_repository`
