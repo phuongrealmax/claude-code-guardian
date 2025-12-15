@@ -28,7 +28,10 @@ import {
   setCodeOptimizerHandlers,
   setProgressToolDeps,
   getProgressToolDefinitions,
+  setCCGRunService,
+  getCCGRunToolDefinition,
 } from './server-handlers.js';
+import { CCGRunService } from './core/ccg-run/index.js';
 import { ProgressService } from './core/progress.service.js';
 import {
   createModules,
@@ -103,6 +106,16 @@ export async function createCCGServer(options: CCGServerOptions = {}): Promise<S
   });
 
   logger.info('ProgressService attached and ready');
+
+  // Initialize CCG Run service
+  const ccgRunService = new CCGRunService({
+    modules,
+    stateManager,
+    logger,
+    projectRoot,
+  });
+  setCCGRunService(ccgRunService);
+  logger.info('CCGRunService initialized');
 
   // Handle session resume if requested
   if (options.resume) {
@@ -198,6 +211,9 @@ function registerToolHandlers(
 
     // Progress tools (Sprint 10)
     tools.push(...getProgressToolDefinitions());
+
+    // CCG Run tool (single entrypoint)
+    tools.push(getCCGRunToolDefinition());
 
     logger.debug(`Listing ${tools.length} tools from enabled modules (CCG v4.0)`);
     return { tools };

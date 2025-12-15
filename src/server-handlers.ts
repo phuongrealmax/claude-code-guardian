@@ -24,6 +24,7 @@ import { CodeOptimizerService, createCodeOptimizerToolHandlers } from './modules
 import { SessionModule, getSessionToolDefinitions } from './modules/session/index.js';
 import { ProgressService } from './core/progress.service.js';
 import { PROGRESS_TOOL_DEFINITIONS, handleProgressTool, ProgressToolDeps } from './core/progress.tools.js';
+import { CCGRunService, CCG_RUN_TOOL_DEFINITION, CCGRunServiceDeps } from './core/ccg-run/index.js';
 
 // ═══════════════════════════════════════════════════════════════
 //                      TYPE DEFINITIONS
@@ -92,6 +93,17 @@ export function setProgressToolDeps(deps: ProgressToolDeps): void {
 
 export function getProgressToolDefinitions() {
   return PROGRESS_TOOL_DEFINITIONS;
+}
+
+// CCG Run service cache
+let ccgRunService: CCGRunService | null = null;
+
+export function setCCGRunService(service: CCGRunService): void {
+  ccgRunService = service;
+}
+
+export function getCCGRunToolDefinition() {
+  return CCG_RUN_TOOL_DEFINITION;
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -190,6 +202,9 @@ export async function routeToolCall(
 
     case 'progress':
       return handleProgressToolCall(name, args);
+
+    case 'ccg':
+      return handleCCGRunTool(args);
 
     default:
       throw new Error(`Unknown module: ${moduleName}`);
@@ -500,4 +515,22 @@ async function handleProgressToolCall(
   }
 
   return handleProgressTool(toolName, args, progressToolDeps);
+}
+
+// ═══════════════════════════════════════════════════════════════
+//                      CCG RUN HANDLER
+// ═══════════════════════════════════════════════════════════════
+
+async function handleCCGRunTool(args: Record<string, unknown>): Promise<unknown> {
+  if (!ccgRunService) {
+    throw new Error('CCG Run service not initialized');
+  }
+
+  return ccgRunService.run({
+    prompt: args.prompt as string,
+    dryRun: args.dryRun as boolean | undefined,
+    persistReport: args.persistReport as boolean | undefined,
+    translationMode: args.translationMode as 'auto' | 'pattern' | 'claude' | 'tiny' | undefined,
+    reportDir: args.reportDir as string | undefined,
+  });
 }
