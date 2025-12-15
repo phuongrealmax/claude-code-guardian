@@ -37,6 +37,7 @@ coverage
 # Playwright / Testing artifacts
 playwright-report/
 test-results/
+blob-report/
 traces/
 screenshots/
 logs/
@@ -49,7 +50,7 @@ internal/
 
 # Internal development files (not for public repo)
 dogfood-cgs.json
-CHANGELOG.md
+# CHANGELOG.md is PUBLIC - included in release
 
 # Temporary files
 *.tmp
