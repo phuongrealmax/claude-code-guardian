@@ -12,6 +12,9 @@ export type CCGEventType =
   | 'session:end'
   | 'session:pause'
   | 'session:resume'
+  | 'session:saved'
+  | 'session:resumed'
+  | 'session:event'
   // Task events
   | 'task:create'
   | 'task:start'
@@ -19,6 +22,10 @@ export type CCGEventType =
   | 'task:complete'
   | 'task:fail'
   | 'task:pause'
+  // Gate events (completion verification)
+  | 'gate:pending'
+  | 'gate:blocked'
+  | 'gate:passed'
   // Guard events
   | 'guard:warning'
   | 'guard:block'
@@ -28,10 +35,12 @@ export type CCGEventType =
   | 'resource:critical'
   | 'resource:checkpoint'
   | 'resource:suggest:latent'
+  | 'resource:governor:critical'
   // Test events
   | 'test:start'
   | 'test:complete'
   | 'test:fail'
+  | 'testing:failure' // Timeline event with metadata-only payload for observability
   // Memory events
   | 'memory:store'
   | 'memory:recall'
@@ -67,11 +76,14 @@ export type CCGEventType =
   | 'auto-agent:fix:rollback'
   | 'auto-agent:error:stored'
   | 'auto-agent:error:recalled'
+  | 'auto-agent:checkpoint'
   // TaskGraph events
   | 'taskgraph:created'
   | 'taskgraph:node:started'
   | 'taskgraph:node:completed'
   | 'taskgraph:node:failed'
+  | 'taskgraph:node:gated' // Node completion blocked by gate policy
+  | 'taskgraph:node:bypass_gates' // Audit: node completed with gates bypassed
   | 'taskgraph:completed'
   // RAG events
   | 'rag:index:started'
@@ -79,7 +91,11 @@ export type CCGEventType =
   | 'rag:index:complete'
   | 'rag:index:error'
   | 'rag:search:started'
-  | 'rag:search:complete';
+  | 'rag:search:complete'
+  // AST events (MCP-first code parsing)
+  | 'ast:file:parsed'
+  | 'ast:symbols:extracted'
+  | 'ast:dependencies:built';
 
 export interface CCGEvent<T = unknown> {
   type: CCGEventType;

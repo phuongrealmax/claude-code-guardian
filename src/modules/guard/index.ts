@@ -11,7 +11,8 @@ import {
   formatRulesList,
   MCPTool,
 } from './guard.tools.js';
-import { ValidateOptions, GuardModuleStatus } from './guard.types.js';
+import { ValidateOptions, GuardModuleStatus, RiskClassification, RiskLevel, GuardRuleset } from './guard.types.js';
+import { StateManager } from '../../core/state-manager.js';
 
 // ═══════════════════════════════════════════════════════════════
 //                      GUARD MODULE CLASS
@@ -42,6 +43,20 @@ export class GuardModule {
    */
   async shutdown(): Promise<void> {
     await this.service.shutdown();
+  }
+
+  /**
+   * Set state manager for evidence persistence (deferred initialization)
+   */
+  setStateManager(stateManager: StateManager): void {
+    this.service.setStateManager(stateManager);
+  }
+
+  /**
+   * Set current task ID for evidence tagging
+   */
+  setCurrentTaskId(taskId: string | undefined): void {
+    this.service.setCurrentTaskId(taskId);
   }
 
   /**
@@ -93,10 +108,15 @@ export class GuardModule {
     const options: ValidateOptions = {
       strict: args.strict as boolean | undefined,
       rules: args.rules as string[] | undefined,
+      ruleset: args.ruleset as GuardRuleset | undefined,
+      taskId: args.taskId as string | undefined,
       includeSuggestions: true,
     };
 
     const result = await this.service.validate(code, filename, options);
+
+    // Get the detailed result for additional info
+    const detailedResult = this.service.getLastDetailedResult();
 
     return {
       success: true,
@@ -106,6 +126,9 @@ export class GuardModule {
       issues: result.issues,
       suggestions: result.suggestions,
       formatted: formatValidationResult(result),
+      // Additional info for Completion Gates
+      ruleset: options.ruleset,
+      failingRules: detailedResult?.failingRules || [],
     };
   }
 
@@ -190,6 +213,33 @@ export class GuardModule {
   async checkTest(code: string, filename: string) {
     return this.service.checkTest(code, filename);
   }
+
+  /**
+   * Classify risk level of a command or action
+   * @param action - The command or action to classify
+   * @returns Risk classification result
+   */
+  classifyRisk(action: string): RiskClassification {
+    return this.service.classifyRisk(action);
+  }
+
+  /**
+   * Batch classify multiple commands
+   * @param actions - Array of commands to classify
+   * @returns Array of risk classifications
+   */
+  classifyRiskBatch(actions: string[]): RiskClassification[] {
+    return this.service.classifyRiskBatch(actions);
+  }
+
+  /**
+   * Get highest risk level from batch classification
+   * @param classifications - Array of risk classifications
+   * @returns Highest risk level found
+   */
+  getHighestRiskLevel(classifications: RiskClassification[]): RiskLevel {
+    return this.service.getHighestRiskLevel(classifications);
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -199,6 +249,7 @@ export class GuardModule {
 export { GuardService } from './guard.service.js';
 export * from './guard.types.js';
 export * from './guard.tools.js';
+export * from './guard.rulesets.js';
 
 // Export rules
 export { FakeTestRule } from './rules/fake-test.rule.js';

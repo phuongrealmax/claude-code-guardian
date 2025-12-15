@@ -5,6 +5,7 @@ import { join, dirname } from 'path';
 import { randomUUID } from 'crypto';
 import { Logger } from './logger.js';
 import { EventBus } from './event-bus.js';
+import type { GuardEvidence, TestEvidence, EvidenceState } from './completion-gates.js';
 
 // ═══════════════════════════════════════════════════════════════
 //                      STATE TYPES
@@ -19,7 +20,30 @@ export interface Session {
   tokenUsage: TokenUsage;
   currentTaskId?: string;
   metadata: Record<string, unknown>;
+  timeline?: SessionEvent[];
+  evidence?: EvidenceState;
 }
+
+export interface SessionEvent {
+  id: string;
+  type: SessionEventType;
+  timestamp: Date;
+  data: Record<string, unknown>;
+  summary?: string;
+}
+
+export type SessionEventType =
+  | 'checkpoint_created'
+  | 'checkpoint_restored'
+  | 'task_started'
+  | 'task_completed'
+  | 'risk_detected'
+  | 'guard_block'
+  | 'governor_warning'
+  | 'large_plan_detected'
+  | 'workflow:gate_passed'
+  | 'workflow:gate_pending'
+  | 'workflow:gate_blocked';
 
 export type SessionStatus = 'active' | 'paused' | 'ended';
 
@@ -97,6 +121,7 @@ export class StateManager {
         lastUpdated: new Date(),
       },
       metadata: {},
+      timeline: [],
     };
 
     this.state.session = session;
@@ -243,6 +268,69 @@ export class StateManager {
   }
 
   // ═══════════════════════════════════════════════════════════════
+  //                      SESSION TIMELINE
+  // ═══════════════════════════════════════════════════════════════
+
+  /**
+   * Add an event to the session timeline
+   */
+  addTimelineEvent(
+    type: SessionEventType,
+    data: Record<string, unknown>,
+    summary?: string
+  ): SessionEvent | undefined {
+    if (!this.state.session) {
+      return undefined;
+    }
+
+    if (!this.state.session.timeline) {
+      this.state.session.timeline = [];
+    }
+
+    const event: SessionEvent = {
+      id: randomUUID(),
+      type,
+      timestamp: new Date(),
+      data,
+      summary,
+    };
+
+    this.state.session.timeline.push(event);
+
+    // Keep timeline size manageable (last 100 events)
+    if (this.state.session.timeline.length > 100) {
+      this.state.session.timeline = this.state.session.timeline.slice(-100);
+    }
+
+    // Emit event for real-time tracking
+    if (this.eventBus) {
+      this.eventBus.emit({
+        type: 'session:event',
+        timestamp: new Date(),
+        data: { event },
+        source: 'StateManager',
+      });
+    }
+
+    this.save();
+    return event;
+  }
+
+  /**
+   * Get session timeline
+   */
+  getTimeline(): SessionEvent[] {
+    return this.state.session?.timeline || [];
+  }
+
+  /**
+   * Get timeline events by type
+   */
+  getTimelineByType(type: SessionEventType): SessionEvent[] {
+    return (this.state.session?.timeline || []).filter(e => e.type === type);
+  }
+
+  // ═══════════════════════════════════════════════════════════════
   //                      STATISTICS
   // ═══════════════════════════════════════════════════════════════
 
@@ -286,6 +374,70 @@ export class StateManager {
    */
   getMetadata<T = unknown>(key: string): T | undefined {
     return this.state.session?.metadata[key] as T | undefined;
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  //                      EVIDENCE STATE
+  // ═══════════════════════════════════════════════════════════════
+
+  /**
+   * Get current evidence state (for gate evaluation)
+   */
+  getEvidenceState(): EvidenceState {
+    if (!this.state.session?.evidence) {
+      return { lastGuardRun: null, lastTestRun: null };
+    }
+    return { ...this.state.session.evidence };
+  }
+
+  /**
+   * Set guard verification evidence
+   */
+  setGuardEvidence(evidence: GuardEvidence | null): void {
+    if (this.state.session) {
+      if (!this.state.session.evidence) {
+        this.state.session.evidence = { lastGuardRun: null, lastTestRun: null };
+      }
+      this.state.session.evidence.lastGuardRun = evidence;
+      this.save();
+      this.logger.debug('Guard evidence updated', { status: evidence?.status });
+    }
+  }
+
+  /**
+   * Set test verification evidence
+   */
+  setTestEvidence(evidence: TestEvidence | null): void {
+    if (this.state.session) {
+      if (!this.state.session.evidence) {
+        this.state.session.evidence = { lastGuardRun: null, lastTestRun: null };
+      }
+      this.state.session.evidence.lastTestRun = evidence;
+      this.save();
+      this.logger.debug('Test evidence updated', { status: evidence?.status });
+    }
+  }
+
+  /**
+   * Clear all evidence (e.g., when starting new task)
+   */
+  clearEvidence(): void {
+    if (this.state.session) {
+      this.state.session.evidence = { lastGuardRun: null, lastTestRun: null };
+      this.save();
+      this.logger.debug('Evidence cleared');
+    }
+  }
+
+  /**
+   * Check if evidence exists for current task
+   */
+  hasEvidenceForTask(taskId: string): { hasGuard: boolean; hasTest: boolean } {
+    const evidence = this.state.session?.evidence;
+    return {
+      hasGuard: evidence?.lastGuardRun?.taskId === taskId && evidence.lastGuardRun.status === 'passed',
+      hasTest: evidence?.lastTestRun?.taskId === taskId && evidence.lastTestRun.status === 'passed',
+    };
   }
 
   // ═══════════════════════════════════════════════════════════════
@@ -435,6 +587,10 @@ export class StateManager {
         this.save();
       }
     }, 30000);
+
+    // Allow process to exit even if interval is pending
+    // This prevents the CLI from hanging after commands complete
+    this.autoSaveInterval.unref();
   }
 }
 

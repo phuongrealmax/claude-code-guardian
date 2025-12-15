@@ -5,7 +5,15 @@ import { getWorkflowTools } from './workflow.tools.js';
 import { WorkflowModuleConfig } from '../../core/types.js';
 import { EventBus } from '../../core/event-bus.js';
 import { Logger } from '../../core/logger.js';
+import { StateManager } from '../../core/state-manager.js';
+import { CompletionGatesService, GatePolicyConfig } from '../../core/completion-gates.js';
 import { TaskNote } from './workflow.types.js';
+
+export interface WorkflowModuleOptions {
+  stateManager?: StateManager;
+  completionGates?: CompletionGatesService;
+  gatePolicy?: Partial<GatePolicyConfig>;
+}
 
 export class WorkflowModule {
   private service: WorkflowService;
@@ -14,9 +22,31 @@ export class WorkflowModule {
     config: WorkflowModuleConfig,
     eventBus: EventBus,
     logger: Logger,
-    projectRoot?: string
+    projectRoot?: string,
+    options?: WorkflowModuleOptions
   ) {
-    this.service = new WorkflowService(config, eventBus, logger, projectRoot);
+    this.service = new WorkflowService(config, eventBus, logger, projectRoot, options);
+  }
+
+  /**
+   * Set state manager for gate evaluation (deferred initialization)
+   */
+  setStateManager(stateManager: StateManager): void {
+    this.service.setStateManager(stateManager);
+  }
+
+  /**
+   * Enable or disable completion gates
+   */
+  setGatesEnabled(enabled: boolean): void {
+    this.service.setGatesEnabled(enabled);
+  }
+
+  /**
+   * Update gate policy configuration
+   */
+  updateGatePolicy(config: Partial<GatePolicyConfig>): void {
+    this.service.updateGatePolicy(config);
   }
 
   async initialize(): Promise<void> {
@@ -153,6 +183,13 @@ export class WorkflowModule {
 
   async completeTask(taskId: string, actualTokens?: number) {
     return this.service.completeTask(taskId, actualTokens);
+  }
+
+  /**
+   * Force complete a task, bypassing gates
+   */
+  async forceCompleteTask(taskId: string, actualTokens?: number) {
+    return this.service.forceCompleteTask(taskId, actualTokens);
   }
 }
 

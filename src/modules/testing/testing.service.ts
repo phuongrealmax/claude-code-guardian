@@ -4,9 +4,12 @@ import { exec } from 'child_process';
 import { promisify } from 'util';
 import { existsSync, readdirSync, rmSync, mkdirSync } from 'fs';
 import { join, basename } from 'path';
+import { randomUUID } from 'crypto';
 import { TestingModuleConfig } from '../../core/types.js';
 import { EventBus } from '../../core/event-bus.js';
 import { Logger } from '../../core/logger.js';
+import { StateManager } from '../../core/state-manager.js';
+import { createTestEvidence, type TestEvidence } from '../../core/completion-gates.js';
 import { BrowserService } from './browser/browser.service.js';
 import {
   TestResults,
@@ -14,13 +17,21 @@ import {
   TestRunOptions,
   TestCleanupResult,
   TestingModuleStatus,
+  BrowserAnalysis,
+  TestingObservability,
 } from './testing.types.js';
 
 const execAsync = promisify(exec);
 
+const MAX_FAILING_TESTS = 10;
+const NETWORK_TIMEOUT_MS = 30000; // 30 seconds
+
 export class TestingService {
   private browserService: BrowserService;
   private lastResults?: TestResults;
+  private lastObservability?: TestingObservability;
+  private stateManager?: StateManager;
+  private currentTaskId?: string;
 
   constructor(
     private config: TestingModuleConfig,
@@ -29,6 +40,20 @@ export class TestingService {
     private projectRoot: string = process.cwd()
   ) {
     this.browserService = new BrowserService(config.browser, logger, projectRoot);
+  }
+
+  /**
+   * Set state manager for evidence persistence (deferred initialization)
+   */
+  setStateManager(stateManager: StateManager): void {
+    this.stateManager = stateManager;
+  }
+
+  /**
+   * Set current task ID for evidence tagging
+   */
+  setCurrentTaskId(taskId: string | undefined): void {
+    this.currentTaskId = taskId;
   }
 
   async initialize(): Promise<void> {
@@ -43,6 +68,8 @@ export class TestingService {
   // ═══════════════════════════════════════════════════════════════
 
   async runTests(options: TestRunOptions = {}): Promise<TestResults> {
+    const runId = randomUUID();
+
     this.eventBus.emit({
       type: 'test:start',
       timestamp: new Date(),
@@ -62,12 +89,22 @@ export class TestingService {
 
       this.lastResults = results;
 
-      this.eventBus.emit({
-        type: results.failed > 0 ? 'test:fail' : 'test:complete',
-        timestamp: new Date(),
-        data: { results },
-        source: 'TestingService',
-      });
+      // Build observability and persist evidence
+      const observability = this.buildObservability(runId, results);
+      this.lastObservability = observability;
+      this.persistTestEvidence(runId, results, observability);
+
+      // Emit appropriate event
+      if (results.failed > 0) {
+        this.emitTestFailureEvent(runId, results, observability);
+      } else {
+        this.eventBus.emit({
+          type: 'test:complete',
+          timestamp: new Date(),
+          data: { results },
+          source: 'TestingService',
+        });
+      }
 
       return results;
     } catch (error: unknown) {
@@ -90,12 +127,11 @@ export class TestingService {
 
       this.lastResults = results;
 
-      this.eventBus.emit({
-        type: 'test:fail',
-        timestamp: new Date(),
-        data: { results },
-        source: 'TestingService',
-      });
+      // Build observability and persist evidence for error case
+      const observability = this.buildObservability(runId, results);
+      this.lastObservability = observability;
+      this.persistTestEvidence(runId, results, observability);
+      this.emitTestFailureEvent(runId, results, observability);
 
       return results;
     }
@@ -261,6 +297,10 @@ export class TestingService {
     return this.browserService.getErrors(sessionId);
   }
 
+  getBrowserAnalysis(sessionId: string): BrowserAnalysis {
+    return this.browserService.getAnalysis(sessionId);
+  }
+
   async closeBrowser(sessionId: string): Promise<void> {
     return this.browserService.closePage(sessionId);
   }
@@ -334,5 +374,199 @@ export class TestingService {
 
   getLastResults(): TestResults | undefined {
     return this.lastResults;
+  }
+
+  getLastObservability(): TestingObservability | undefined {
+    return this.lastObservability;
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  //                      OBSERVABILITY & EVIDENCE
+  // ═══════════════════════════════════════════════════════════════
+
+  /**
+   * Build prioritized observability output from test results.
+   * Priority: 1. Console 2. Network 3. Trace 4. Screenshot
+   */
+  private buildObservability(runId: string, results: TestResults): TestingObservability {
+    // Get browser session data if available (for frontend tests)
+    const activeSessions = this.browserService.getActiveSessions();
+    let consoleErrors: Array<{ message: string; source?: string; timestamp: string }> = [];
+    let consoleWarnings: Array<{ message: string; source?: string; timestamp: string }> = [];
+    let networkFailures: Array<{ url: string; method: string; status: number; error?: string; timestamp: string }> = [];
+    let networkTimeouts: Array<{ url: string; method: string; duration: number }> = [];
+    let healthScore = 100;
+
+    // Aggregate from all active browser sessions
+    for (const sessionId of activeSessions) {
+      const session = this.browserService.getSession(sessionId);
+      if (!session) continue;
+
+      // Console errors (priority 1)
+      for (const log of session.consoleLogs) {
+        if (log.type === 'error') {
+          consoleErrors.push({
+            message: log.message.substring(0, 500), // cap message length
+            source: log.source,
+            timestamp: log.timestamp.toISOString(),
+          });
+          healthScore -= 10;
+        } else if (log.type === 'warn') {
+          consoleWarnings.push({
+            message: log.message.substring(0, 500),
+            source: log.source,
+            timestamp: log.timestamp.toISOString(),
+          });
+          healthScore -= 2;
+        }
+      }
+
+      // Network failures (priority 2)
+      for (const req of session.networkRequests) {
+        if (req.status >= 400 || req.error) {
+          networkFailures.push({
+            url: req.url.substring(0, 200),
+            method: req.method,
+            status: req.status,
+            error: req.error,
+            timestamp: req.timestamp.toISOString(),
+          });
+          healthScore -= 5;
+        }
+        if (req.duration > NETWORK_TIMEOUT_MS) {
+          networkTimeouts.push({
+            url: req.url.substring(0, 200),
+            method: req.method,
+            duration: req.duration,
+          });
+          healthScore -= 3;
+        }
+      }
+
+      // Page errors are critical
+      healthScore -= session.errors.length * 15;
+    }
+
+    // Cap arrays to prevent bloat
+    consoleErrors = consoleErrors.slice(0, MAX_FAILING_TESTS);
+    consoleWarnings = consoleWarnings.slice(0, MAX_FAILING_TESTS);
+    networkFailures = networkFailures.slice(0, MAX_FAILING_TESTS);
+    networkTimeouts = networkTimeouts.slice(0, MAX_FAILING_TESTS);
+
+    // Determine status
+    const status: TestingObservability['status'] =
+      results.failed > 0 ? 'failed' :
+      results.skipped > 0 && results.passed === 0 ? 'skipped' : 'passed';
+
+    // Reduce health score based on test failures
+    healthScore -= results.failed * 10;
+    healthScore = Math.max(0, Math.min(100, healthScore));
+
+    // Extract failing test names
+    const failingTests = results.tests
+      .filter(t => t.status === 'failed')
+      .map(t => t.name)
+      .slice(0, MAX_FAILING_TESTS);
+
+    // Build summary (prioritized: console > network > tests)
+    const summaryParts: string[] = [];
+    if (consoleErrors.length > 0) {
+      summaryParts.push(`${consoleErrors.length} console error(s)`);
+    }
+    if (networkFailures.length > 0) {
+      summaryParts.push(`${networkFailures.length} network failure(s)`);
+    }
+    if (results.failed > 0) {
+      summaryParts.push(`${results.failed} test(s) failed`);
+    }
+    const summary = summaryParts.length > 0
+      ? summaryParts.join(', ')
+      : `${results.passed} test(s) passed`;
+
+    return {
+      runId,
+      timestamp: new Date().toISOString(),
+      status,
+      console: {
+        errors: consoleErrors,
+        warnings: consoleWarnings,
+        errorCount: consoleErrors.length,
+        warningCount: consoleWarnings.length,
+      },
+      network: {
+        failures: networkFailures,
+        timeouts: networkTimeouts,
+        failureCount: networkFailures.length,
+        timeoutCount: networkTimeouts.length,
+      },
+      // Trace is optional - would come from Playwright trace if configured
+      trace: undefined,
+      // Screenshot is secondary - not captured by default in observability
+      screenshot: undefined,
+      summary,
+      failingTests,
+      healthScore,
+    };
+  }
+
+  /**
+   * Persist test evidence to StateManager for gate evaluation
+   */
+  private persistTestEvidence(
+    runId: string,
+    results: TestResults,
+    observability: TestingObservability
+  ): void {
+    if (!this.stateManager) {
+      this.logger.debug('StateManager not set, skipping evidence persistence');
+      return;
+    }
+
+    const status: 'passed' | 'failed' | 'skipped' =
+      results.failed > 0 ? 'failed' :
+      results.skipped > 0 && results.passed === 0 ? 'skipped' : 'passed';
+
+    const evidence = createTestEvidence(status, runId, {
+      failingTests: observability.failingTests,
+      consoleErrorsCount: observability.console.errorCount,
+      networkFailuresCount: observability.network.failureCount,
+      taskId: this.currentTaskId,
+    });
+
+    this.stateManager.setTestEvidence(evidence);
+    this.logger.debug('Test evidence persisted', { runId, status, taskId: this.currentTaskId });
+  }
+
+  /**
+   * Emit timeline event for test failure (metadata-only payload)
+   */
+  private emitTestFailureEvent(
+    runId: string,
+    results: TestResults,
+    observability: TestingObservability
+  ): void {
+    // Emit test:fail event with results (existing behavior)
+    this.eventBus.emit({
+      type: 'test:fail',
+      timestamp: new Date(),
+      data: { results },
+      source: 'TestingService',
+    });
+
+    // Emit testing:failure timeline event (metadata-only for StateManager)
+    this.eventBus.emit({
+      type: 'testing:failure',
+      timestamp: new Date(),
+      source: 'TestingService',
+      data: {
+        // Metadata only - no large payloads
+        runId,
+        failedCount: results.failed,
+        consoleErrorCount: observability.console.errorCount,
+        networkFailureCount: observability.network.failureCount,
+        healthScore: observability.healthScore,
+        taskId: this.currentTaskId,
+      },
+    });
   }
 }

@@ -6,17 +6,20 @@ import { ResourceModuleConfig } from '../../core/types.js';
 import { EventBus } from '../../core/event-bus.js';
 import { Logger } from '../../core/logger.js';
 import { CheckpointReason } from './resource.types.js';
+import { CheckpointDiffService, DiffOptions } from './checkpoint-diff.service.js';
 
 export class ResourceModule {
   private service: ResourceService;
+  private diffService: CheckpointDiffService;
 
   constructor(
     config: ResourceModuleConfig,
     eventBus: EventBus,
-    logger: Logger,
-    projectRoot?: string
+    private logger: Logger,
+    private projectRoot: string = process.cwd()
   ) {
     this.service = new ResourceService(config, eventBus, logger, projectRoot);
+    this.diffService = new CheckpointDiffService(logger, projectRoot);
   }
 
   async initialize(): Promise<void> {
@@ -62,6 +65,17 @@ export class ResourceModule {
       case 'resource_checkpoint_delete':
         return this.service.deleteCheckpoint(args.checkpointId as string);
 
+      // Token Budget Governor tools
+      case 'resource_governor_state':
+        return this.service.getGovernorState();
+
+      case 'resource_action_allowed':
+        return this.service.isActionAllowed(args.action as string);
+
+      // Checkpoint Diff
+      case 'resource_checkpoint_diff':
+        return this.handleCheckpointDiff(args);
+
       default:
         throw new Error(`Unknown resource tool: ${toolName}`);
     }
@@ -90,8 +104,82 @@ export class ResourceModule {
   listCheckpoints() {
     return this.service.listCheckpoints();
   }
+
+  // Token Budget Governor
+  getGovernorState() {
+    return this.service.getGovernorState();
+  }
+
+  isActionAllowed(action: string) {
+    return this.service.isActionAllowed(action);
+  }
+
+  // P1: Session Context Restore
+  setResumeStateProvider(provider: import('./resource.service.js').ResumeStateProvider) {
+    this.service.setResumeStateProvider(provider);
+  }
+
+  // P1: Session Timeline Integration
+  setStateManager(stateManager: import('../../core/state-manager.js').StateManager) {
+    this.service.setStateManager(stateManager);
+  }
+
+  async getLatestResumeState() {
+    return this.service.getLatestResumeState();
+  }
+
+  // Checkpoint Diff
+  getDiffService() {
+    return this.diffService;
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  //                      PRIVATE HANDLERS
+  // ═══════════════════════════════════════════════════════════════
+
+  private async handleCheckpointDiff(args: Record<string, unknown>) {
+    const fromCheckpointId = args.fromCheckpointId as string;
+    const toCheckpointId = (args.toCheckpointId as string) || 'current';
+    const options: DiffOptions = {
+      includeUnchanged: args.includeUnchanged as boolean | undefined,
+      maxFiles: args.maxFiles as number | undefined,
+    };
+
+    try {
+      const diff = await this.diffService.generateDiff(
+        fromCheckpointId,
+        toCheckpointId,
+        options
+      );
+
+      // Return both the diff data and formatted summary
+      return {
+        success: true,
+        diff,
+        formatted: this.diffService.formatDiffSummary(diff),
+      };
+    } catch (error) {
+      this.logger.error('Checkpoint diff failed:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  }
 }
 
-export { ResourceService } from './resource.service.js';
+export { ResourceService, ResumeStateProvider } from './resource.service.js';
 export { getResourceTools } from './resource.tools.js';
 export * from './resource.types.js';
+export {
+  AutoCheckpointService,
+  AutoCheckpointConfig,
+  AutoCheckpointResult,
+  DEFAULT_AUTO_CHECKPOINT_CONFIG,
+} from './auto-checkpoint.service.js';
+export {
+  CheckpointDiffService,
+  CheckpointDiff,
+  FileDiff,
+  DiffOptions,
+} from './checkpoint-diff.service.js';

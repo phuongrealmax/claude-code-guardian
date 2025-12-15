@@ -125,6 +125,20 @@ export function getTestingTools(): Tool[] {
       },
     },
     {
+      name: 'testing_browser_analysis',
+      description: 'Get comprehensive analysis of browser session including console errors, failed network requests, and health score. Use this instead of calling individual log/network/error tools - it prioritizes issues and provides actionable recommendations.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          sessionId: {
+            type: 'string',
+            description: 'Browser session ID',
+          },
+        },
+        required: ['sessionId'],
+      },
+    },
+    {
       name: 'testing_browser_close',
       description: 'Close a browser session',
       inputSchema: {

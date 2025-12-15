@@ -17,6 +17,7 @@ import { AutoAgentService } from './auto-agent.service.js';
 import { createAutoAgentTools } from './auto-agent.tools.js';
 import { TaskGraphService } from './task-graph.js';
 import { createTaskGraphTools, TASK_GRAPH_TOOL_DEFINITIONS } from './task-graph.tools.js';
+import { GovernorState } from '../resource/resource.types.js';
 
 // Re-export types
 export * from './auto-agent.types.js';
@@ -109,6 +110,15 @@ export class AutoAgentModule {
 
   getTaskGraphService(): TaskGraphService {
     return this.taskGraphService;
+  }
+
+  /**
+   * Set the governor state provider for token budget integration
+   * This allows AutoAgent to respect token budget limits when decomposing tasks
+   */
+  setGovernorStateProvider(provider: () => GovernorState): void {
+    this.service.setGovernorStateProvider(provider);
+    this.logger.debug('Governor state provider configured for AutoAgent');
   }
 
   getTools() {

@@ -77,3 +77,31 @@ export interface TaskSummary {
   progress: number;
   priority: TaskPriority;
 }
+
+// ═══════════════════════════════════════════════════════════════
+//                      GATE RESULT TYPES
+// ═══════════════════════════════════════════════════════════════
+
+export type TaskCompleteStatus = 'completed' | 'pending' | 'blocked';
+
+export interface TaskCompleteResult {
+  status: TaskCompleteStatus;
+  task?: Task;
+  gate?: {
+    status: 'passed' | 'blocked' | 'pending';
+    missingEvidence: ('guard' | 'test')[];
+    failingEvidence: Array<{
+      type: 'guard' | 'test';
+      reason: string;
+      details?: string[];
+    }>;
+    nextToolCalls?: Array<{
+      tool: 'guard_validate' | 'testing_run';
+      args: Record<string, unknown>;
+      reason: string;
+      priority: number; // lower = earlier (0 = highest)
+    }>;
+    blockedReason?: string;
+  };
+  message: string;
+}

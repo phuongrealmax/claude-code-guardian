@@ -117,5 +117,75 @@ export function getResourceTools(): Tool[] {
         required: ['checkpointId'],
       },
     },
+    // ═══════════════════════════════════════════════════════════════
+    //                      TOKEN BUDGET GOVERNOR
+    // ═══════════════════════════════════════════════════════════════
+    {
+      name: 'resource_governor_state',
+      description: `Get current token budget governor state. Returns mode (normal/conservative/critical), allowed and blocked actions based on token usage percentage.
+
+Modes:
+- normal (< 70%): All actions allowed
+- conservative (70-84%): Delta-only responses, no browser testing or full test suites
+- critical (≥ 85%): Must checkpoint immediately, only finish tasks and save work
+
+Use this before starting heavy operations to check if they're allowed.`,
+      inputSchema: {
+        type: 'object',
+        properties: {},
+        required: [],
+      },
+    },
+    {
+      name: 'resource_action_allowed',
+      description: 'Check if a specific action is allowed by the token budget governor',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          action: {
+            type: 'string',
+            description: 'Action to check (e.g., "browser_open", "full_test_suite", "task_decompose")',
+          },
+        },
+        required: ['action'],
+      },
+    },
+    // ═══════════════════════════════════════════════════════════════
+    //                      CHECKPOINT DIFF
+    // ═══════════════════════════════════════════════════════════════
+    {
+      name: 'resource_checkpoint_diff',
+      description: `Compare two checkpoints and show changes between them.
+
+Returns:
+- Files added, modified, deleted
+- Line counts changed
+- Token usage difference
+- Formatted summary
+
+Use this to understand what changed since a checkpoint.`,
+      inputSchema: {
+        type: 'object',
+        properties: {
+          fromCheckpointId: {
+            type: 'string',
+            description: 'Starting checkpoint ID',
+          },
+          toCheckpointId: {
+            type: 'string',
+            description: 'Ending checkpoint ID (use "current" for current state)',
+          },
+          includeUnchanged: {
+            type: 'boolean',
+            description: 'Include unchanged files in diff (default: false)',
+          },
+          maxFiles: {
+            type: 'number',
+            description: 'Maximum files to include in diff',
+          },
+        },
+        required: ['fromCheckpointId'],
+      },
+    },
   ];
 }

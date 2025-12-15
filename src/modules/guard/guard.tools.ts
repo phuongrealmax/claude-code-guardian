@@ -44,6 +44,15 @@ export function getGuardTools(): MCPTool[] {
             items: { type: 'string' },
             description: 'Specific rules to run (optional, runs all if not specified)',
           },
+          ruleset: {
+            type: 'string',
+            enum: ['frontend', 'backend', 'security', 'testing', 'default'],
+            description: 'Predefined ruleset to use. "frontend" for React/Vue components, "backend" for API/server code, "security" for security audit, "testing" for test files, "default" for general code.',
+          },
+          taskId: {
+            type: 'string',
+            description: 'Task ID for evidence tagging (optional, used by Completion Gates)',
+          },
         },
         required: ['code', 'filename'],
       },

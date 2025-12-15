@@ -74,6 +74,7 @@ export interface SubtaskDefinition {
   phase: 'analysis' | 'plan' | 'impl' | 'review';
   tools: string[];                 // Suggested tools
   files?: string[];                // Files to modify
+  note?: string;                   // Optional note (e.g., governor constraints)
 }
 
 export interface DecomposeResult {
@@ -82,6 +83,17 @@ export interface DecomposeResult {
   complexity: TaskComplexityAnalysis;
   subtasks: SubtaskDefinition[];
   suggestedOrder: string[];        // Ordered subtask IDs
+  error?: string;                  // Error message if blocked
+  governorState?: {                // Token budget governor state
+    mode: string;
+    recommendation: string;
+    note?: string;
+  };
+  checkpointCreated?: {            // Auto-checkpoint for large plans
+    id: string;
+    name: string;
+    reason: string;
+  };
 }
 
 export interface DecomposeParams {

@@ -3,13 +3,110 @@
  */
 
 import { z } from 'zod';
-import { TaskGraphService, CreateGraphParams, TaskPhase } from './task-graph.js';
+import { TaskGraphService, CreateGraphParams, TaskPhase, NodeCompletionResult } from './task-graph.js';
+import { TASK_TEMPLATES } from './task-graph-templates.js';
 
 /**
  * Create TaskGraph MCP tools
  */
 export function createTaskGraphTools(taskGraphService: TaskGraphService) {
   return {
+    // ═══════════════════════════════════════════════════════════════
+    //          NEW: Workflow Start (Template-based DAG Creation)
+    // ═══════════════════════════════════════════════════════════════
+
+    /**
+     * Start a workflow from a template - combines graph creation with first executable nodes
+     * This is the primary entry point for starting gated workflows
+     */
+    auto_workflow_start: {
+      description: `Start a gated workflow from a template. Creates a DAG task graph and returns the first nodes to execute.
+
+Available templates:
+- feature: Full feature development (${TASK_TEMPLATES.feature?.length || 0} steps)
+- bugfix: Bug fixing workflow (${TASK_TEMPLATES.bugfix?.length || 0} steps)
+- refactor: Code refactoring (${TASK_TEMPLATES.refactor?.length || 0} steps)
+- review: Code review workflow (${TASK_TEMPLATES.review?.length || 0} steps)
+
+Gates are enforced on impl/test/review phases - nodes cannot complete without required evidence.`,
+      parameters: z.object({
+        name: z.string().describe('Name for this workflow (e.g., "Add user authentication")'),
+        taskType: z.enum(['feature', 'bugfix', 'refactor', 'review']).describe('Workflow template type'),
+        description: z.string().optional().describe('Detailed description of the task'),
+        files: z.array(z.string()).optional().describe('Files involved in this workflow'),
+        constraints: z.array(z.string()).optional().describe('Constraints to follow'),
+      }),
+      handler: async (params: {
+        name: string;
+        taskType: 'feature' | 'bugfix' | 'refactor' | 'review';
+        description?: string;
+        files?: string[];
+        constraints?: string[];
+      }) => {
+        // Create the graph
+        const graph = taskGraphService.createGraph({
+          name: params.name,
+          description: params.description,
+          taskType: params.taskType,
+          files: params.files,
+          constraints: params.constraints,
+        });
+
+        // Get analysis
+        const analysis = taskGraphService.analyzeGraph(graph.id);
+
+        // Get first nodes ready for execution
+        const nextNodes = taskGraphService.getNextNodes(graph.id);
+
+        // Get all nodes with their gate requirements
+        const nodesList = Array.from(graph.nodes.values()).map(n => ({
+          id: n.id,
+          name: n.name,
+          phase: n.phase,
+          status: n.status,
+          gateRequired: n.gateRequired,
+          estimatedTokens: n.estimatedTokens,
+          dependsOn: n.dependsOn.length,
+        }));
+
+        // Count gated nodes
+        const gatedNodes = nodesList.filter(n => n.gateRequired).length;
+
+        return {
+          success: true,
+          workflow: {
+            graphId: graph.id,
+            name: graph.name,
+            taskType: params.taskType,
+            description: params.description,
+          },
+          summary: {
+            totalNodes: graph.nodes.size,
+            gatedNodes,
+            estimatedTokens: graph.totalEstimatedTokens,
+            parallelGroups: analysis?.parallelizableGroups.length || 0,
+            criticalPathLength: analysis?.criticalPathLength || 0,
+          },
+          nextNodes: nextNodes.map(n => ({
+            id: n.id,
+            name: n.name,
+            phase: n.phase,
+            tools: n.tools,
+            priority: n.priority,
+            gateRequired: n.gateRequired,
+          })),
+          allNodes: nodesList,
+          instructions: [
+            `Workflow "${params.name}" created with ${graph.nodes.size} nodes`,
+            `${gatedNodes} nodes have completion gates (impl/test/review phases)`,
+            `Start with: ${nextNodes.map(n => n.name).join(', ')}`,
+            'Use auto_start_node to begin, auto_complete_node when done',
+            'Gated nodes require evidence (guard validation, test results) to complete',
+          ],
+        };
+      },
+    },
+
     // Create a new task graph
     auto_create_graph: {
       description: 'Create a new DAG-based task graph for complex multi-step tasks. Supports parallel execution and dependency management.',
@@ -102,26 +199,96 @@ export function createTaskGraphTools(taskGraphService: TaskGraphService) {
       },
     },
 
-    // Complete a node
+    // Complete a node (with gate checking)
     auto_complete_node: {
-      description: 'Mark a node as completed. Updates dependent nodes to ready state.',
+      description: `Mark a node as completed. Uses Completion Gates by default.
+
+For gated nodes (impl/test/review phases):
+- Checks if required evidence exists (guard validation, test results)
+- Returns gate status if blocked, with suggested tool calls
+- Only completes if gates pass
+
+Use bypassGates=true only for analysis/plan phases or when manually overriding.`,
       parameters: z.object({
         graphId: z.string().describe('Graph ID'),
         nodeId: z.string().describe('Node ID to complete'),
         result: z.any().optional().describe('Result data from execution'),
         tokensUsed: z.number().optional().describe('Actual tokens consumed'),
+        bypassGates: z.boolean().optional().describe('Skip gate checking (default: false)'),
       }),
       handler: async (params: {
         graphId: string;
         nodeId: string;
         result?: unknown;
         tokensUsed?: number;
+        bypassGates?: boolean;
       }) => {
-        const node = taskGraphService.completeNode(
+        // Use gated completion by default
+        if (!params.bypassGates) {
+          const result = taskGraphService.tryCompleteNode(
+            params.graphId,
+            params.nodeId,
+            params.result,
+            params.tokensUsed
+          );
+
+          if (!result.success) {
+            // Gate blocked or node not found
+            if (result.gateResult) {
+              return {
+                success: false,
+                gateBlocked: true,
+                gateStatus: result.gateResult.status,
+                node: result.node ? {
+                  id: result.node.id,
+                  name: result.node.name,
+                  phase: result.node.phase,
+                } : undefined,
+                missingEvidence: result.gateResult.missingEvidence,
+                failingEvidence: result.gateResult.failingEvidence.map(f => ({
+                  type: f.type,
+                  reason: f.reason,
+                })),
+                nextToolCalls: result.gateResult.nextToolCalls,
+                message: result.blockedReason || `Gate ${result.gateResult.status}: Need evidence before completion`,
+                hint: 'Run the suggested tool calls to provide evidence, then try completing again',
+              };
+            }
+            return {
+              success: false,
+              message: result.blockedReason || 'Node not found',
+            };
+          }
+
+          // Gate passed
+          const nextNodes = taskGraphService.getNextNodes(params.graphId);
+          return {
+            success: true,
+            completed: {
+              id: result.node!.id,
+              name: result.node!.name,
+              phase: result.node!.phase,
+            },
+            gateStatus: result.gateResult?.status || 'passed',
+            nextNodesReady: nextNodes.length,
+            nextNodes: nextNodes.slice(0, 3).map(n => ({
+              id: n.id,
+              name: n.name,
+              phase: n.phase,
+              priority: n.priority,
+              gateRequired: n.gateRequired,
+            })),
+            message: `Completed "${result.node!.name}" (gate: passed), ${nextNodes.length} nodes now ready`,
+          };
+        }
+
+        // Bypass gates - use audited bypass method
+        const node = taskGraphService.completeNodeBypass(
           params.graphId,
           params.nodeId,
           params.result,
-          params.tokensUsed
+          params.tokensUsed,
+          'MCP tool: bypassGates=true'
         );
 
         if (!node) {
@@ -138,14 +305,17 @@ export function createTaskGraphTools(taskGraphService: TaskGraphService) {
           completed: {
             id: node.id,
             name: node.name,
+            phase: node.phase,
           },
+          gateBypassed: true,
+          auditEmitted: true,
           nextNodesReady: nextNodes.length,
           nextNodes: nextNodes.slice(0, 3).map(n => ({
             id: n.id,
             name: n.name,
             priority: n.priority,
           })),
-          message: `Completed "${node.name}", ${nextNodes.length} nodes now ready`,
+          message: `Completed "${node.name}" (gates bypassed - audited), ${nextNodes.length} nodes now ready`,
         };
       },
     },
@@ -356,10 +526,13 @@ export function createTaskGraphTools(taskGraphService: TaskGraphService) {
 }
 
 export const TASK_GRAPH_TOOL_DEFINITIONS = [
-  { name: 'auto_create_graph', description: 'Create a DAG-based task graph' },
+  // Primary workflow entry point (NEW - Sprint 6)
+  { name: 'auto_workflow_start', description: 'Start a gated workflow from template (feature/bugfix/refactor/review)' },
+  // Graph management
+  { name: 'auto_create_graph', description: 'Create a DAG-based task graph (low-level)' },
   { name: 'auto_get_next_nodes', description: 'Get next executable nodes' },
   { name: 'auto_start_node', description: 'Start executing a node' },
-  { name: 'auto_complete_node', description: 'Complete a node' },
+  { name: 'auto_complete_node', description: 'Complete a node (with gate checking)' },
   { name: 'auto_fail_node', description: 'Mark a node as failed' },
   { name: 'auto_analyze_graph', description: 'Analyze graph structure and progress' },
   { name: 'auto_list_graphs', description: 'List all task graphs' },

@@ -21,6 +21,7 @@ import { ThinkingModule } from './modules/thinking/index.js';
 import { AutoAgentModule } from './modules/auto-agent/index.js';
 import { RAGModule } from './modules/rag/index.js';
 import { CodeOptimizerService, createCodeOptimizerToolHandlers } from './modules/code-optimizer/index.js';
+import { SessionModule, getSessionToolDefinitions } from './modules/session/index.js';
 
 // ═══════════════════════════════════════════════════════════════
 //                      TYPE DEFINITIONS
@@ -40,13 +41,37 @@ export interface CCGModules {
   autoAgent: AutoAgentModule;
   rag: RAGModule;
   codeOptimizer: CodeOptimizerService;
+  session: SessionModule;
 }
 
 interface SessionInitResult {
   sessionId: string;
-  status: string;
-  memory: { loaded: number };
+  status: 'ready' | 'error';
+  memory: {
+    loaded: number;
+    recentDecisions?: Array<{ content: string; type: string; importance: number }>;
+  };
+  workflow?: {
+    pendingTasks: number;
+    activeTask: {
+      id: string;
+      name: string;
+      status: string;
+      progress?: number;
+    } | null;
+  };
+  contextReminder?: string;
   message: string;
+
+  // P1: Session Context Restore
+  resumeState?: {
+    available: boolean;
+    summary?: string;
+    currentTaskName?: string | null;
+    nextActions?: string[];
+    activeLatentPhase?: string | null;
+    recentFailures?: number;
+  };
 }
 
 // Code Optimizer tool handlers cache
@@ -61,7 +86,8 @@ export function setCodeOptimizerHandlers(handlers: ReturnType<typeof createCodeO
 // ═══════════════════════════════════════════════════════════════
 
 export function getSessionTools() {
-  return [
+  // Core session tools (init/end/status handled by server-handlers)
+  const coreTools = [
     {
       name: 'session_init',
       description: 'Initialize CCG session, load memory, check status. Call this at the start of a new conversation.',
@@ -85,16 +111,10 @@ export function getSessionTools() {
         required: [] as string[],
       },
     },
-    {
-      name: 'session_status',
-      description: 'Get current session status including memory count, active tasks, and resource usage.',
-      inputSchema: {
-        type: 'object' as const,
-        properties: {},
-        required: [] as string[],
-      },
-    },
   ];
+
+  // Add SessionModule tools (timeline, export, resume, etc.)
+  return [...coreTools, ...getSessionToolDefinitions()];
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -171,6 +191,7 @@ async function handleSessionTool(
   stateManager: StateManager,
   logger: Logger
 ): Promise<unknown> {
+  // Core session tools handled here
   switch (action) {
     case 'init':
       return initializeSession(modules, stateManager, logger);
@@ -178,8 +199,15 @@ async function handleSessionTool(
     case 'end':
       return endSession(modules, stateManager, args.reason as string | undefined, logger);
 
+    // Route new session tools to SessionModule
     case 'status':
-      return getFullStatus(modules, stateManager);
+    case 'timeline':
+    case 'export':
+    case 'resume':
+    case 'replay':
+    case 'save':
+    case 'offer':
+      return modules.session.handleTool(`session_${action}`, args);
 
     default:
       throw new Error(`Unknown session action: ${action}`);
@@ -198,20 +226,125 @@ async function initializeSession(
   const pendingTasksList = await modules.workflow.loadPendingTasks();
   const pendingTasks = pendingTasksList?.length || 0;
 
+  // NEW: Get context for resume
+  const recentDecisionsResult = await modules.memory.handleTool('recall', {
+    query: 'decision',
+    type: 'decision',
+    limit: 3,
+  });
+  const recentDecisions = (recentDecisionsResult as { memories?: Array<{ content: string; type: string; importance: number }> })?.memories?.slice(0, 3) || [];
+
+  // Get active task from workflow
+  const activeTaskResult = await modules.workflow.handleTool('workflow_current', {});
+  const activeTask = (activeTaskResult as { task?: { id: string; name: string; status: string; progress?: number } })?.task || null;
+
+  // P1: Get resume state from latest checkpoint
+  let resumeStateInfo: SessionInitResult['resumeState'];
+  try {
+    const resumeState = await modules.resource.getLatestResumeState();
+    if (resumeState) {
+      resumeStateInfo = {
+        available: true,
+        summary: resumeState.summary,
+        currentTaskName: resumeState.currentTaskName,
+        nextActions: resumeState.nextActions,
+        activeLatentPhase: resumeState.activeLatentPhase,
+        recentFailures: resumeState.recentFailures.length,
+      };
+      logger.info(`Found resume state: ${resumeState.summary}`);
+    } else {
+      resumeStateInfo = { available: false };
+    }
+  } catch (error) {
+    logger.warn(`Failed to get resume state: ${error}`);
+    resumeStateInfo = { available: false };
+  }
+
   // Create session
   const session = stateManager.createSession();
+
+  // Generate context reminder (include resume state)
+  const contextReminder = generateContextReminder(activeTask, pendingTasks, recentDecisions, resumeStateInfo);
 
   const result: SessionInitResult = {
     sessionId: session.id,
     status: 'ready',
     memory: {
       loaded: memoryCount,
+      recentDecisions: recentDecisions.length > 0 ? recentDecisions : undefined,
     },
+    workflow: {
+      pendingTasks,
+      activeTask,
+    },
+    contextReminder,
     message: formatWelcomeMessage(memoryCount, pendingTasks),
+    resumeState: resumeStateInfo,
   };
 
-  logger.info(`Session ${session.id} initialized`);
+  logger.info(`Session ${session.id} initialized with context reminder`);
   return result;
+}
+
+function generateContextReminder(
+  activeTask: { id: string; name: string; status: string; progress?: number } | null,
+  pendingTasks: number,
+  recentDecisions: Array<{ content: string; type: string; importance: number }>,
+  resumeState?: SessionInitResult['resumeState']
+): string {
+  const lines = [
+    '📌 CCG MCP Tools Available:',
+    '  • memory_store/recall - Persistent knowledge',
+    '  • workflow_task_* - Task tracking',
+    '  • guard_validate - Code quality check',
+    '  • testing_* - Run tests & browser testing',
+    '  • latent_* - Latent Chain Mode for complex tasks',
+    '  • auto_* - Auto-agent for decomposition & error fixing',
+  ];
+
+  // P1: Show resume state if available
+  if (resumeState?.available && resumeState.summary) {
+    lines.push('');
+    lines.push('🔄 RESUME FROM CHECKPOINT:');
+    lines.push(`   ${resumeState.summary}`);
+    if (resumeState.nextActions && resumeState.nextActions.length > 0) {
+      lines.push('   Suggested next:');
+      resumeState.nextActions.slice(0, 3).forEach(action => {
+        lines.push(`     → ${action}`);
+      });
+    }
+    if (resumeState.activeLatentPhase) {
+      lines.push(`   Active latent phase: ${resumeState.activeLatentPhase}`);
+    }
+    if (resumeState.recentFailures && resumeState.recentFailures > 0) {
+      lines.push(`   ⚠️ ${resumeState.recentFailures} recent failures logged`);
+    }
+  }
+
+  if (activeTask) {
+    lines.push('');
+    lines.push(`🎯 Active Task: ${activeTask.name}`);
+    lines.push(`   Status: ${activeTask.status}${activeTask.progress ? ` (${activeTask.progress}%)` : ''}`);
+  }
+
+  if (pendingTasks > 0) {
+    lines.push('');
+    lines.push(`⏳ Pending Tasks: ${pendingTasks}`);
+  }
+
+  if (recentDecisions.length > 0) {
+    lines.push('');
+    lines.push('📝 Recent Decisions:');
+    recentDecisions.forEach((d, i) => {
+      const shortContent = d.content.length > 60 ? d.content.substring(0, 60) + '...' : d.content;
+      lines.push(`   ${i + 1}. ${shortContent}`);
+    });
+  }
+
+  lines.push('');
+  lines.push('⚠️ IMPORTANT: Always use CCG tools, do not work without them.');
+
+  return lines.join('\n');
 }
 
 async function endSession(

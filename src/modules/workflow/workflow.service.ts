@@ -6,6 +6,13 @@ import { v4 as uuid } from 'uuid';
 import { WorkflowModuleConfig } from '../../core/types.js';
 import { EventBus } from '../../core/event-bus.js';
 import { Logger } from '../../core/logger.js';
+import { StateManager } from '../../core/state-manager.js';
+import {
+  CompletionGatesService,
+  GatePolicyResult,
+  canComplete,
+  GatePolicyConfig,
+} from '../../core/completion-gates.js';
 import {
   Task,
   TaskNote,
@@ -14,20 +21,53 @@ import {
   TaskFilter,
   WorkflowStatus,
   TaskSummary,
+  TaskCompleteResult,
 } from './workflow.types.js';
 
 export class WorkflowService {
   private tasks: Map<string, Task> = new Map();
   private currentTaskId: string | null = null;
   private tasksDir: string;
+  private completionGates: CompletionGatesService;
+  private stateManager: StateManager | null = null;
+  private gatesEnabled: boolean;
 
   constructor(
     private config: WorkflowModuleConfig,
     private eventBus: EventBus,
     private logger: Logger,
-    private projectRoot: string = process.cwd()
+    private projectRoot: string = process.cwd(),
+    options?: {
+      stateManager?: StateManager;
+      completionGates?: CompletionGatesService;
+      gatePolicy?: Partial<GatePolicyConfig>;
+    }
   ) {
     this.tasksDir = join(projectRoot, '.ccg', 'tasks');
+    this.stateManager = options?.stateManager || null;
+    this.completionGates = options?.completionGates || new CompletionGatesService(options?.gatePolicy);
+    this.gatesEnabled = config.gatesEnabled !== false; // enabled by default
+  }
+
+  /**
+   * Set the state manager (for deferred initialization)
+   */
+  setStateManager(stateManager: StateManager): void {
+    this.stateManager = stateManager;
+  }
+
+  /**
+   * Enable or disable completion gates
+   */
+  setGatesEnabled(enabled: boolean): void {
+    this.gatesEnabled = enabled;
+  }
+
+  /**
+   * Update gate policy configuration
+   */
+  updateGatePolicy(config: Partial<GatePolicyConfig>): void {
+    this.completionGates.updateConfig(config);
   }
 
   async initialize(): Promise<void> {
@@ -149,10 +189,85 @@ export class WorkflowService {
     return task;
   }
 
-  async completeTask(taskId: string, actualTokens?: number): Promise<Task | null> {
+  /**
+   * Complete a task with gate enforcement
+   *
+   * If gates are enabled and stateManager is available:
+   * - Evaluates completion gates using evidence from state
+   * - Returns 'pending' if evidence is missing
+   * - Returns 'blocked' if evidence shows failures
+   * - Only completes task if gates pass
+   */
+  async completeTask(taskId: string, actualTokens?: number): Promise<TaskCompleteResult> {
     const task = this.tasks.get(taskId);
-    if (!task) return null;
+    if (!task) {
+      return {
+        status: 'blocked',
+        message: `Task not found: ${taskId}`,
+      };
+    }
 
+    // Evaluate gates if enabled and state manager available
+    if (this.gatesEnabled && this.stateManager) {
+      const gateResult = this.evaluateTaskGates(task);
+
+      if (!canComplete(gateResult)) {
+        // Record timeline event based on gate status
+        const eventType = gateResult.status === 'pending'
+          ? 'workflow:gate_pending'
+          : 'workflow:gate_blocked';
+
+        this.stateManager.addTimelineEvent(eventType, {
+          taskId: task.id,
+          taskName: task.name,
+          gateStatus: gateResult.status,
+          missingEvidence: gateResult.missingEvidence,
+          failingEvidence: gateResult.failingEvidence.map(f => ({
+            type: f.type,
+            reason: f.reason,
+          })),
+        }, `Task completion ${gateResult.status}: ${task.name}`);
+
+        this.eventBus.emit({
+          type: eventType === 'workflow:gate_pending' ? 'gate:pending' : 'gate:blocked',
+          timestamp: new Date(),
+          data: { task, gateResult },
+          source: 'WorkflowService',
+        });
+
+        this.logger.info(`Task completion ${gateResult.status}: ${task.name} - ${gateResult.blockedReason}`);
+
+        return {
+          status: gateResult.status === 'pending' ? 'pending' : 'blocked',
+          task,
+          gate: {
+            status: gateResult.status,
+            missingEvidence: gateResult.missingEvidence,
+            failingEvidence: gateResult.failingEvidence.map(f => ({
+              type: f.type,
+              reason: f.reason,
+              details: f.details,
+            })),
+            nextToolCalls: gateResult.nextToolCalls?.map(c => ({
+              tool: c.tool,
+              args: c.args,
+              reason: c.reason,
+              priority: c.priority,
+            })),
+            blockedReason: gateResult.blockedReason,
+          },
+          message: gateResult.blockedReason || `Task completion ${gateResult.status}`,
+        };
+      }
+
+      // Gates passed - record success
+      this.stateManager.addTimelineEvent('workflow:gate_passed', {
+        taskId: task.id,
+        taskName: task.name,
+      }, `Task gates passed: ${task.name}`);
+    }
+
+    // Complete the task
     task.status = 'completed';
     task.progress = 100;
     task.completedAt = new Date();
@@ -174,7 +289,88 @@ export class WorkflowService {
 
     this.logger.info(`Task completed: ${task.name}`);
 
+    return {
+      status: 'completed',
+      task,
+      message: `Task completed successfully: ${task.name}`,
+    };
+  }
+
+  /**
+   * Complete task without gate enforcement (bypass)
+   * Use this for administrative or emergency completions
+   */
+  async forceCompleteTask(taskId: string, actualTokens?: number): Promise<Task | null> {
+    const task = this.tasks.get(taskId);
+    if (!task) return null;
+
+    task.status = 'completed';
+    task.progress = 100;
+    task.completedAt = new Date();
+    task.updatedAt = new Date();
+    if (actualTokens) task.actualTokens = actualTokens;
+
+    if (this.currentTaskId === taskId) {
+      this.currentTaskId = null;
+    }
+
+    await this.saveTask(task);
+
+    this.eventBus.emit({
+      type: 'task:complete',
+      timestamp: new Date(),
+      data: { task, forced: true },
+      source: 'WorkflowService',
+    });
+
+    this.logger.warn(`Task force-completed (gates bypassed): ${task.name}`);
+
     return task;
+  }
+
+  /**
+   * Evaluate completion gates for a task
+   */
+  private evaluateTaskGates(task: Task): GatePolicyResult {
+    if (!this.stateManager) {
+      // No state manager = pass by default
+      return {
+        status: 'passed',
+        missingEvidence: [],
+        failingEvidence: [],
+      };
+    }
+
+    const evidenceState = this.stateManager.getEvidenceState();
+
+    return this.completionGates.evaluateCompletionGates(evidenceState, {
+      taskId: task.id,
+      taskName: task.name,
+      taskType: this.inferTaskType(task),
+    });
+  }
+
+  /**
+   * Infer task type from task data for gate policy
+   */
+  private inferTaskType(task: Task): string | undefined {
+    const name = task.name.toLowerCase();
+    const tags = task.tags.map(t => t.toLowerCase());
+
+    if (tags.includes('frontend') || name.includes('frontend') || name.includes('ui') || name.includes('component')) {
+      return 'frontend';
+    }
+    if (tags.includes('backend') || name.includes('backend') || name.includes('api') || name.includes('server')) {
+      return 'backend';
+    }
+    if (tags.includes('refactor') || name.includes('refactor')) {
+      return 'refactor';
+    }
+    if (tags.includes('test') || name.includes('test')) {
+      return 'test';
+    }
+
+    return undefined;
   }
 
   async pauseTask(taskId: string): Promise<Task | null> {

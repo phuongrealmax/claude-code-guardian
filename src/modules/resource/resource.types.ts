@@ -54,6 +54,41 @@ export interface CheckpointData {
   tasks: unknown[];
   filesChanged: string[];
   metadata: Record<string, unknown>;
+
+  // P1: Session Context Restore - Resume state for new sessions
+  resumeState?: ResumeState;
+}
+
+/**
+ * ResumeState - Saved context to restore session accurately
+ */
+export interface ResumeState {
+  // Current task being worked on
+  currentTaskId: string | null;
+  currentTaskName: string | null;
+
+  // Last completed step/action
+  lastCompletedStep: string | null;
+
+  // Suggested next actions for continuation
+  nextActions: string[];
+
+  // Tools that will be needed
+  requiredTools: string[];
+
+  // Recent failures to avoid repeating
+  recentFailures: Array<{
+    type: string;
+    message: string;
+    timestamp: Date;
+  }>;
+
+  // Active latent context (if any)
+  activeLatentTaskId: string | null;
+  activeLatentPhase: string | null;
+
+  // Summary for quick resume
+  summary: string;
 }
 
 export type CheckpointReason =
@@ -69,4 +104,22 @@ export interface TokenUsage {
   estimated: number;
   percentage: number;
   lastUpdated: Date;
+}
+
+// ═══════════════════════════════════════════════════════════════
+//                      TOKEN BUDGET GOVERNOR
+// ═══════════════════════════════════════════════════════════════
+
+export type GovernorMode = 'normal' | 'conservative' | 'critical';
+
+export interface GovernorState {
+  mode: GovernorMode;
+  tokenPercentage: number;
+  allowedActions: string[];
+  blockedActions: string[];
+  recommendation: string;
+  thresholds: {
+    conservative: number; // 70%
+    critical: number;     // 85%
+  };
 }

@@ -1,6 +1,19 @@
 /**
  * License Module Types
  *
+ * OPEN-CORE CLIENT TYPES:
+ * For the official open-core license types, use @ccg/cloud-client instead:
+ *   import { LicenseTier, LicenseInfo, LicenseGateway } from '@ccg/cloud-client';
+ *
+ * LEGACY/INTERNAL TYPES:
+ * The types below are kept for backward compatibility and internal reference.
+ * They are used by the legacy backend code (stripe.service.ts, paddle.service.ts)
+ * which will be moved to the private `cloud-backend` repository.
+ *
+ * See docs/LICENSE_SYSTEM.md for architecture details.
+ *
+ * ---
+ * Original description:
  * Handles license management for Code Guardian Studio
  * - Team and Enterprise licenses
  * - License verification for CLI

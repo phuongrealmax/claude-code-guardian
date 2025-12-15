@@ -4,7 +4,47 @@
 // Claude Code Guardian - MCP Server Entry Point
 
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { createCCGServer } from './server.js';
+import { createCCGServer, type CCGServerOptions } from './server.js';
+
+// ═══════════════════════════════════════════════════════════════
+//                      CLI ARGUMENT PARSING
+// ═══════════════════════════════════════════════════════════════
+
+function parseArgs(): CCGServerOptions {
+  const args = process.argv.slice(2);
+  const options: CCGServerOptions = {};
+
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
+
+    if (arg === '--resume' || arg === '-r') {
+      options.resume = true;
+      // Check if next arg is a file path (not another flag)
+      const nextArg = args[i + 1];
+      if (nextArg && !nextArg.startsWith('-')) {
+        options.sessionFile = nextArg;
+        i++;
+      }
+    } else if (arg === '--help' || arg === '-h') {
+      console.error(`
+Claude Code Guardian MCP Server
+
+Usage: ccg-server [options]
+
+Options:
+  --resume, -r [file]    Resume from previous session (optionally specify file)
+  --help, -h             Show this help message
+
+Environment Variables:
+  CCG_PROJECT_ROOT       Project root directory (default: cwd)
+  CCG_LOG_LEVEL          Log level: debug, info, warn, error (default: info)
+`);
+      process.exit(0);
+    }
+  }
+
+  return options;
+}
 
 // ═══════════════════════════════════════════════════════════════
 //                      MAIN ENTRY POINT
@@ -12,8 +52,11 @@ import { createCCGServer } from './server.js';
 
 async function main(): Promise<void> {
   try {
+    // Parse CLI arguments
+    const options = parseArgs();
+
     // Create the CCG server
-    const server = await createCCGServer();
+    const server = await createCCGServer(options);
 
     // Create stdio transport for MCP communication
     const transport = new StdioServerTransport();

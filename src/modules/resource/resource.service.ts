@@ -13,8 +13,19 @@ import {
   CheckpointInfo,
   ResourceWarning,
   CheckpointReason,
-  TokenUsage
+  TokenUsage,
+  GovernorState,
+  GovernorMode,
+  ResumeState
 } from './resource.types.js';
+import { StateManager, SessionEventType } from '../../core/state-manager.js';
+
+// Provider interface for gathering resume state from other modules
+export interface ResumeStateProvider {
+  getCurrentTask(): Promise<{ id: string; name: string; status: string } | null>;
+  getActiveLatentContext(): Promise<{ taskId: string; phase: string } | null>;
+  getRecentFailures(): Promise<Array<{ type: string; message: string; timestamp: Date }>>;
+}
 
 export class ResourceService {
   private tokenUsage: TokenUsage = {
@@ -27,6 +38,12 @@ export class ResourceService {
   private checkpoints: CheckpointInfo[] = [];
   private checkpointDir: string;
   private lastAutoCheckpoint: number = 0;
+
+  // P1: Resume state provider
+  private resumeStateProvider?: ResumeStateProvider;
+
+  // P1: StateManager for session timeline
+  private stateManager?: StateManager;
 
   constructor(
     private config: ResourceModuleConfig,
@@ -62,6 +79,22 @@ export class ResourceService {
     });
 
     this.logger.info(`Resource module initialized with ${this.checkpoints.length} checkpoints`);
+  }
+
+  /**
+   * Set the resume state provider for gathering context from other modules
+   */
+  setResumeStateProvider(provider: ResumeStateProvider): void {
+    this.resumeStateProvider = provider;
+    this.logger.debug('Resume state provider configured');
+  }
+
+  /**
+   * Set the state manager for session timeline tracking
+   */
+  setStateManager(stateManager: StateManager): void {
+    this.stateManager = stateManager;
+    this.logger.debug('StateManager configured for timeline tracking');
   }
 
   // ═══════════════════════════════════════════════════════════════
@@ -136,6 +169,116 @@ export class ResourceService {
     }
 
     return warnings;
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  //                      TOKEN BUDGET GOVERNOR
+  // ═══════════════════════════════════════════════════════════════
+
+  /**
+   * Get current governor state based on token usage.
+   * - Normal (< 70%): All actions allowed
+   * - Conservative (70-84%): Delta-only responses, no heavy operations
+   * - Critical (≥ 85%): Checkpoint required, stop most operations
+   */
+  getGovernorState(): GovernorState {
+    const percentage = this.tokenUsage.percentage;
+    const CONSERVATIVE_THRESHOLD = 70;
+    const CRITICAL_THRESHOLD = 85;
+
+    let mode: GovernorMode;
+    let allowedActions: string[];
+    let blockedActions: string[];
+    let recommendation: string;
+
+    if (percentage >= CRITICAL_THRESHOLD) {
+      mode = 'critical';
+      allowedActions = [
+        'checkpoint_create',
+        'delta_update',
+        'finish_task',
+        'session_end',
+        'memory_store',
+      ];
+      blockedActions = [
+        'browser_open',
+        'full_test_suite',
+        'large_refactor',
+        'task_decompose',
+        'new_task_create',
+        'multiple_file_edit',
+      ];
+      recommendation = 'Token budget critical! Finish current task immediately. Create checkpoint. No new tasks.';
+
+      // Emit critical event
+      this.eventBus.emit({
+        type: 'resource:governor:critical',
+        timestamp: new Date(),
+        data: { percentage, mode },
+        source: 'ResourceService',
+      });
+
+      // Record to session timeline
+      this.recordTimelineEvent('governor_warning', {
+        mode,
+        tokenPercentage: percentage,
+        recommendation,
+      }, `Governor mode: ${mode} (${percentage}% tokens used)`);
+    } else if (percentage >= CONSERVATIVE_THRESHOLD) {
+      mode = 'conservative';
+      allowedActions = [
+        'checkpoint_create',
+        'delta_update',
+        'small_patch',
+        'single_test',
+        'memory_store',
+        'memory_recall',
+        'finish_task',
+      ];
+      blockedActions = [
+        'browser_open',
+        'full_test_suite',
+        'large_refactor',
+      ];
+      recommendation = 'Token budget low. Use delta-only responses. Avoid heavy operations like browser testing or full test suites.';
+    } else {
+      mode = 'normal';
+      allowedActions = ['all'];
+      blockedActions = [];
+      recommendation = 'Normal operation. All actions available.';
+    }
+
+    return {
+      mode,
+      tokenPercentage: percentage,
+      allowedActions,
+      blockedActions,
+      recommendation,
+      thresholds: {
+        conservative: CONSERVATIVE_THRESHOLD,
+        critical: CRITICAL_THRESHOLD,
+      },
+    };
+  }
+
+  /**
+   * Check if a specific action is allowed by the governor
+   */
+  isActionAllowed(action: string): { allowed: boolean; reason?: string } {
+    const state = this.getGovernorState();
+
+    if (state.mode === 'normal') {
+      return { allowed: true };
+    }
+
+    if (state.blockedActions.includes(action)) {
+      return {
+        allowed: false,
+        reason: `Action "${action}" is blocked in ${state.mode} mode. ${state.recommendation}`,
+      };
+    }
+
+    return { allowed: true };
   }
 
   private checkThresholds(): void {
@@ -305,8 +448,10 @@ export class ResourceService {
     name?: string;
     reason: CheckpointReason;
     metadata?: Record<string, unknown>;
+    nextActions?: string[];
+    summary?: string;
   }): Promise<CheckpointInfo> {
-    const { name, reason, metadata = {} } = params;
+    const { name, reason, metadata = {}, nextActions, summary } = params;
 
     const checkpointId = uuid();
     const checkpointName = name || `checkpoint-${Date.now()}`;
@@ -315,6 +460,9 @@ export class ResourceService {
     if (!existsSync(this.checkpointDir)) {
       mkdirSync(this.checkpointDir, { recursive: true });
     }
+
+    // P1: Gather resume state for session restore
+    const resumeState = await this.gatherResumeState(nextActions, summary);
 
     // Gather data to checkpoint
     const checkpointData: CheckpointData = {
@@ -331,6 +479,7 @@ export class ResourceService {
       tasks: [],
       filesChanged: [],
       metadata,
+      resumeState,
     };
 
     // Save checkpoint
@@ -351,9 +500,136 @@ export class ResourceService {
     // Enforce max checkpoints
     await this.enforceCheckpointLimit();
 
+    // Record to session timeline
+    this.recordTimelineEvent('checkpoint_created', {
+      checkpointId,
+      checkpointName,
+      reason,
+      tokenUsage: this.tokenUsage.used,
+    }, `Checkpoint created: ${checkpointName}`);
+
     this.logger.info(`Checkpoint created: ${checkpointName} (${checkpointId})`);
 
     return info;
+  }
+
+  /**
+   * P1: Gather resume state from all modules
+   */
+  private async gatherResumeState(
+    nextActions?: string[],
+    summary?: string
+  ): Promise<ResumeState> {
+    let currentTask: { id: string; name: string; status: string } | null = null;
+    let activeLatent: { taskId: string; phase: string } | null = null;
+    let recentFailures: Array<{ type: string; message: string; timestamp: Date }> = [];
+
+    // Get state from provider if available
+    if (this.resumeStateProvider) {
+      try {
+        currentTask = await this.resumeStateProvider.getCurrentTask();
+        activeLatent = await this.resumeStateProvider.getActiveLatentContext();
+        recentFailures = await this.resumeStateProvider.getRecentFailures();
+      } catch (error) {
+        this.logger.warn(`Failed to gather resume state: ${error}`);
+      }
+    }
+
+    // Determine required tools based on context
+    const requiredTools: string[] = [];
+    if (currentTask) {
+      requiredTools.push('workflow_task_update', 'workflow_task_complete');
+    }
+    if (activeLatent) {
+      requiredTools.push('latent_context_get', 'latent_context_update');
+    }
+    if (this.tokenUsage.percentage >= 70) {
+      requiredTools.push('resource_governor_state', 'resource_checkpoint_create');
+    }
+
+    // Build summary if not provided
+    const autoSummary = summary || this.buildAutoSummary(currentTask, activeLatent);
+
+    return {
+      currentTaskId: currentTask?.id || null,
+      currentTaskName: currentTask?.name || null,
+      lastCompletedStep: null, // Will be populated by caller
+      nextActions: nextActions || this.suggestNextActions(currentTask, activeLatent),
+      requiredTools,
+      recentFailures,
+      activeLatentTaskId: activeLatent?.taskId || null,
+      activeLatentPhase: activeLatent?.phase || null,
+      summary: autoSummary,
+    };
+  }
+
+  /**
+   * Build auto summary from current state
+   */
+  private buildAutoSummary(
+    currentTask: { id: string; name: string; status: string } | null,
+    activeLatent: { taskId: string; phase: string } | null
+  ): string {
+    const parts: string[] = [];
+
+    if (currentTask) {
+      parts.push(`Working on: ${currentTask.name} (${currentTask.status})`);
+    }
+    if (activeLatent) {
+      parts.push(`Latent phase: ${activeLatent.phase}`);
+    }
+    if (this.tokenUsage.percentage >= 70) {
+      parts.push(`Token usage: ${this.tokenUsage.percentage}%`);
+    }
+
+    return parts.length > 0 ? parts.join('. ') : 'No active work.';
+  }
+
+  /**
+   * Suggest next actions based on current state
+   */
+  private suggestNextActions(
+    currentTask: { id: string; name: string; status: string } | null,
+    activeLatent: { taskId: string; phase: string } | null
+  ): string[] {
+    const actions: string[] = [];
+
+    if (currentTask) {
+      if (currentTask.status === 'in_progress') {
+        actions.push(`Continue task: ${currentTask.name}`);
+      } else if (currentTask.status === 'paused') {
+        actions.push(`Resume task: ${currentTask.name}`);
+      }
+    }
+
+    if (activeLatent) {
+      actions.push(`Continue latent context (${activeLatent.phase} phase)`);
+    }
+
+    if (this.tokenUsage.percentage >= 85) {
+      actions.push('CRITICAL: Create checkpoint and wrap up');
+    } else if (this.tokenUsage.percentage >= 70) {
+      actions.push('Consider creating checkpoint');
+    }
+
+    if (actions.length === 0) {
+      actions.push('Check workflow_task_list for pending tasks');
+    }
+
+    return actions;
+  }
+
+  /**
+   * Get resume state from latest checkpoint
+   */
+  async getLatestResumeState(): Promise<ResumeState | null> {
+    if (this.checkpoints.length === 0) {
+      return null;
+    }
+
+    const latest = this.checkpoints[0];
+    const checkpoint = await this.restoreCheckpoint(latest.id);
+    return checkpoint?.resumeState || null;
   }
 
   async restoreCheckpoint(checkpointId: string): Promise<CheckpointData | null> {
@@ -365,6 +641,13 @@ export class ResourceService {
     }
 
     const data = JSON.parse(readFileSync(checkpointPath, 'utf-8')) as CheckpointData;
+
+    // Record to session timeline
+    this.recordTimelineEvent('checkpoint_restored', {
+      checkpointId,
+      checkpointName: data.name,
+      restoredTokenUsage: data.tokenUsage,
+    }, `Checkpoint restored: ${data.name}`);
 
     this.logger.info(`Checkpoint restored: ${data.name}`);
 
@@ -442,5 +725,18 @@ export class ResourceService {
       name: 'session-end',
       reason: 'session_end',
     });
+  }
+
+  /**
+   * Record an event to the session timeline
+   */
+  private recordTimelineEvent(
+    type: SessionEventType,
+    data: Record<string, unknown>,
+    summary?: string
+  ): void {
+    if (this.stateManager) {
+      this.stateManager.addTimelineEvent(type, data, summary);
+    }
   }
 }

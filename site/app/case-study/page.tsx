@@ -1,10 +1,5 @@
 import Footer from '../components/Footer'
 
-export const metadata = {
-  title: 'Case Study: Dogfooding CCG — Code Guardian Studio',
-  description: 'How Code Guardian Studio reduced its Tech Debt Index from 75 to 68 (-9.3%) by running CCG on itself.',
-}
-
 export default function CaseStudy() {
   return (
     <main>

@@ -28,6 +28,10 @@ import {
   CodeOptimizerService,
   DEFAULT_CODE_OPTIMIZER_CONFIG,
 } from '../modules/code-optimizer/index.js';
+import {
+  SessionModule,
+  DEFAULT_SESSION_CONFIG,
+} from '../modules/session/index.js';
 
 // ═══════════════════════════════════════════════════════════════
 //                      DEFAULT CONFIGS
@@ -102,6 +106,13 @@ export function resolveCodeOptimizerConfig(config: CCGConfig) {
   return (config.modules as any).codeOptimizer || DEFAULT_CODE_OPTIMIZER_CONFIG;
 }
 
+/**
+ * Resolve session config with defaults
+ */
+export function resolveSessionConfig(config: CCGConfig) {
+  return (config.modules as any).session || DEFAULT_SESSION_CONFIG;
+}
+
 // ═══════════════════════════════════════════════════════════════
 //                      MODULE FACTORY
 // ═══════════════════════════════════════════════════════════════
@@ -120,6 +131,7 @@ export interface CCGModules {
   autoAgent: AutoAgentModule;
   rag: RAGModule;
   codeOptimizer: CodeOptimizerService;
+  session: SessionModule;
 }
 
 /**
@@ -139,6 +151,7 @@ export function createModules(
   const autoAgentConfig = resolveAutoAgentConfig(config);
   const ragConfig = resolveRAGConfig(config);
   const codeOptimizerConfig = resolveCodeOptimizerConfig(config);
+  const sessionConfig = (config.modules as any).session || DEFAULT_SESSION_CONFIG;
 
   logger.debug('Creating modules with resolved configs');
 
@@ -161,6 +174,7 @@ export function createModules(
       logger,
       projectRoot
     ),
+    session: new SessionModule(sessionConfig, eventBus, logger, projectRoot),
   };
 }
 
@@ -199,6 +213,11 @@ export async function initializeModules(
   const codeOptimizerConfig = resolveCodeOptimizerConfig(config);
   if (codeOptimizerConfig.enabled !== false) {
     initPromises.push(modules.codeOptimizer.initialize());
+  }
+
+  const sessionConfig = resolveSessionConfig(config);
+  if (sessionConfig.enabled !== false) {
+    initPromises.push(modules.session.initialize());
   }
 
   await Promise.all(initPromises);

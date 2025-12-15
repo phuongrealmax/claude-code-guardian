@@ -117,6 +117,11 @@ export interface GuardRules {
   // AI/LLM Security rules (default: true)
   blockPromptInjection?: boolean;     // Prompt injection detection
 
+  // Frontend quality rules (default: false)
+  blockLargeComponents?: boolean;     // Component files > 300 lines
+  blockInlineStyles?: boolean;        // Inline styles > 100 chars
+  blockMixedConcerns?: boolean;       // Mixed HTML/CSS/JS patterns
+
   // Custom rules
   customRules?: CustomRule[];
 }
@@ -187,6 +192,8 @@ export interface WorkflowModuleConfig {
   autoCleanupEnabled?: boolean;         // Auto-cleanup completed tasks on session start
   completedRetentionDays?: number;      // Keep completed tasks for N days (default: 1)
   maxCompletedTasks?: number;           // Max completed tasks to keep (default: 10)
+  // Completion gates
+  gatesEnabled?: boolean;               // Enable completion gates (default: true)
 }
 
 export interface AgentsModuleConfig {

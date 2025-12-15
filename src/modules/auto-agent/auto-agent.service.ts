@@ -26,6 +26,7 @@ import {
   RecallErrorsResult,
   ErrorMemoryEntry,
 } from './auto-agent.types.js';
+import { GovernorState } from '../resource/resource.types.js';
 
 export class AutoAgentService {
   private config: AutoAgentModuleConfig;
@@ -37,6 +38,19 @@ export class AutoAgentService {
   private router: ToolRouter;
   private fixLoop: AutoFixLoop;
   private errorMemory: ErrorMemory;
+
+  // Token Budget Governor integration
+  private governorStateProvider?: () => GovernorState;
+
+  // Checkpoint integration for large plans
+  private checkpointProvider?: (params: {
+    name: string;
+    reason: string;
+    metadata?: Record<string, unknown>;
+  }) => Promise<{ id: string; name: string } | null>;
+
+  // Config for large plan checkpoint threshold
+  private largePlanThreshold = 5; // Checkpoint if plan has >= 5 subtasks
 
   constructor(
     config: AutoAgentModuleConfig,
@@ -78,14 +92,71 @@ export class AutoAgentService {
     this.logger.info('AutoAgent service shutdown complete');
   }
 
+  /**
+   * Set the governor state provider for token budget integration
+   */
+  setGovernorStateProvider(provider: () => GovernorState): void {
+    this.governorStateProvider = provider;
+    this.logger.debug('Governor state provider set');
+  }
+
+  /**
+   * Set the checkpoint provider for auto-checkpoint on large plans
+   */
+  setCheckpointProvider(provider: (params: {
+    name: string;
+    reason: string;
+    metadata?: Record<string, unknown>;
+  }) => Promise<{ id: string; name: string } | null>): void {
+    this.checkpointProvider = provider;
+    this.logger.debug('Checkpoint provider set');
+  }
+
+  /**
+   * Set the large plan threshold for auto-checkpoint
+   * @param threshold - Number of subtasks that triggers checkpoint (default: 5)
+   */
+  setLargePlanThreshold(threshold: number): void {
+    this.largePlanThreshold = threshold;
+    this.logger.debug(`Large plan threshold set to ${threshold}`);
+  }
+
   // ═══════════════════════════════════════════════════════════════
   //                      TASK DECOMPOSITION
   // ═══════════════════════════════════════════════════════════════
 
   /**
    * Decompose a task into subtasks
+   * Respects token budget governor state:
+   * - Critical mode: Blocks task decomposition entirely
+   * - Conservative mode: Limits subtasks to 3 maximum
    */
   async decomposeTask(params: DecomposeParams): Promise<DecomposeResult> {
+    // Check governor state first
+    if (this.governorStateProvider) {
+      const governorState = this.governorStateProvider();
+
+      if (governorState.mode === 'critical') {
+        this.logger.warn('Task decomposition blocked: Token budget in critical mode');
+        return {
+          success: false,
+          taskId: '',
+          complexity: { score: 0, factors: [], suggestDecompose: false, estimatedSubtasks: 0 },
+          subtasks: [],
+          suggestedOrder: [],
+          error: 'Token budget critical. Cannot create new tasks.',
+          governorState: {
+            mode: governorState.mode,
+            recommendation: governorState.recommendation,
+          },
+        };
+      }
+
+      if (governorState.mode === 'conservative') {
+        this.logger.info('Task decomposition in conservative mode: limiting subtasks');
+      }
+    }
+
     if (!this.config.decomposer.autoDecompose && !params.forceDecompose) {
       return {
         success: false,
@@ -96,7 +167,73 @@ export class AutoAgentService {
       };
     }
 
-    return this.decomposer.decompose(params);
+    // Perform decomposition
+    const result = await this.decomposer.decompose(params);
+
+    // Apply governor constraints if in conservative mode
+    if (this.governorStateProvider) {
+      const governorState = this.governorStateProvider();
+
+      if (governorState.mode === 'conservative' && result.subtasks.length > 3) {
+        this.logger.info(`Limiting subtasks from ${result.subtasks.length} to 3 due to token budget`);
+        result.subtasks = result.subtasks.slice(0, 3);
+        result.suggestedOrder = result.suggestedOrder.slice(0, 3);
+        result.subtasks.forEach(t => {
+          t.note = 'Limited due to token budget (conservative mode)';
+        });
+        result.governorState = {
+          mode: governorState.mode,
+          recommendation: governorState.recommendation,
+          note: 'Subtasks limited to 3 due to conservative token budget',
+        };
+      }
+    }
+
+    // Auto-checkpoint for large plans
+    if (this.checkpointProvider && result.success && result.subtasks.length >= this.largePlanThreshold) {
+      this.logger.info(`Large plan detected (${result.subtasks.length} subtasks >= ${this.largePlanThreshold}), creating checkpoint`);
+
+      try {
+        const checkpoint = await this.checkpointProvider({
+          name: `large-plan-${result.taskId || 'unknown'}`,
+          reason: 'before_risky_operation',
+          metadata: {
+            taskName: params.taskName,
+            subtaskCount: result.subtasks.length,
+            complexity: result.complexity.score,
+            trigger: 'large_plan_decomposition',
+          },
+        });
+
+        if (checkpoint) {
+          result.checkpointCreated = {
+            id: checkpoint.id,
+            name: checkpoint.name,
+            reason: `Auto-checkpoint before large plan (${result.subtasks.length} subtasks)`,
+          };
+
+          this.logger.info(`Checkpoint created: ${checkpoint.name} (${checkpoint.id})`);
+
+          // Emit event
+          this.eventBus.emit({
+            type: 'auto-agent:checkpoint',
+            timestamp: new Date(),
+            data: {
+              checkpointId: checkpoint.id,
+              trigger: 'large_plan',
+              subtaskCount: result.subtasks.length,
+              taskId: result.taskId,
+            },
+            source: 'AutoAgentService',
+          });
+        }
+      } catch (error) {
+        this.logger.error('Failed to create checkpoint for large plan:', error);
+        // Don't fail the decomposition if checkpoint fails
+      }
+    }
+
+    return result;
   }
 
   /**
@@ -287,6 +424,98 @@ export class AutoAgentService {
             taskDescription: task.description,
           });
         }
+      }
+    });
+
+    // NEW: Auto-recall on guard block
+    this.eventBus.on('guard:block', async (event) => {
+      if (!this.config.errorMemory.autoRecall) return;
+
+      const data = event.data as {
+        filename: string;
+        rules?: string[];
+        reasons?: string[];
+        firstIssue?: { rule: string; message: string; suggestion?: string };
+      };
+
+      this.logger.debug(`Auto-recalling for guard block: ${data.filename}`);
+
+      const errorInfo = {
+        type: data.firstIssue?.rule || 'guard_block',
+        message: data.firstIssue?.message || data.reasons?.join('; ') || 'Guard blocked',
+        file: data.filename,
+      };
+
+      try {
+        const recalled = await this.errorMemory.recall({
+          error: errorInfo,
+          limit: 3,
+          minSimilarity: 0.5,
+        });
+
+        if (recalled.suggestedFix) {
+          this.logger.info(`Found similar error fix for ${data.filename} (confidence: ${recalled.confidence})`);
+          this.eventBus.emit({
+            type: 'auto-agent:error:recalled',
+            timestamp: new Date(),
+            data: {
+              trigger: 'guard:block',
+              errorInfo,
+              suggestedFix: recalled.suggestedFix,
+              confidence: recalled.confidence,
+              matches: recalled.matches?.slice(0, 2),
+            },
+            source: 'AutoAgentService',
+          });
+        }
+      } catch (err) {
+        this.logger.warn('Error during auto-recall for guard block:', err);
+      }
+    });
+
+    // NEW: Auto-recall on test failure
+    this.eventBus.on('test:fail', async (event) => {
+      if (!this.config.errorMemory.autoRecall) return;
+
+      const data = event.data as {
+        testFile?: string;
+        error?: string;
+        message?: string;
+        testName?: string;
+      };
+
+      this.logger.debug(`Auto-recalling for test failure: ${data.testFile}`);
+
+      const errorInfo = {
+        type: 'test_failure',
+        message: data.error || data.message || 'Test failed',
+        file: data.testFile,
+      };
+
+      try {
+        const recalled = await this.errorMemory.recall({
+          error: errorInfo,
+          limit: 3,
+          minSimilarity: 0.4,
+        });
+
+        if (recalled.suggestedFix) {
+          this.logger.info(`Found similar test fix for ${data.testFile} (confidence: ${recalled.confidence})`);
+          this.eventBus.emit({
+            type: 'auto-agent:error:recalled',
+            timestamp: new Date(),
+            data: {
+              trigger: 'test:fail',
+              errorInfo,
+              suggestedFix: recalled.suggestedFix,
+              confidence: recalled.confidence,
+              matches: recalled.matches?.slice(0, 2),
+            },
+            source: 'AutoAgentService',
+          });
+        }
+      } catch (err) {
+        this.logger.warn('Error during auto-recall for test failure:', err);
       }
     });
 

@@ -13,6 +13,7 @@ import { StateManager } from '../core/state-manager.js';
 import type { CCGModulesForAPI } from './http-server.js';
 import { setupMemoryRoutes } from './routes-memory.js';
 import { setupWorkflowRoutes } from './routes-workflow.js';
+import { setupSessionRoutes } from './routes-session.js';
 import {
   setupAgentsRoutes,
   setupGuardRoutes,
@@ -51,6 +52,7 @@ export function setupRoutes(
   setupStatusRoute(app, modules, stateManager);
   setupMemoryRoutes(app, modules, broadcast);
   setupWorkflowRoutes(app, modules, broadcast);
+  setupSessionRoutes(app, modules, broadcast);
   setupAgentsRoutes(app, modules);
   setupGuardRoutes(app, modules, broadcast);
   setupLatentRoutes(app, modules);

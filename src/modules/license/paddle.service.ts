@@ -1,6 +1,23 @@
 /**
  * Paddle Integration Service
  *
+ * @deprecated INTERNAL REFERENCE / LEGACY
+ *
+ * This file is kept for reference only and will be moved to the private
+ * `cloud-backend` repository. It is NOT part of the default dev experience
+ * or quickstart flow.
+ *
+ * For license verification in the open-core CLI, use:
+ * - @ccg/cloud-client (packages/cloud-client/)
+ * - src/core/license-integration.ts
+ *
+ * The actual Paddle webhook handling runs on the cloud backend at
+ * api.codeguardian.studio, NOT from this public repository.
+ *
+ * See docs/LICENSE_SYSTEM.md and docs/PADDLE_INTEGRATION.md for details.
+ *
+ * ---
+ * Original description:
  * Handles Paddle checkout and webhook processing
  * Paddle is Merchant of Record - handles VAT/tax automatically
  */

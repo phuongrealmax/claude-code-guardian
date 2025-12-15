@@ -134,10 +134,11 @@ export class CodeOptimizerService {
     if (this.config.cacheResults) {
       this.cachedMetrics.set(cacheKey, result);
 
-      // Clear cache after TTL
-      setTimeout(() => {
+      // Clear cache after TTL (unref to not block process exit)
+      const cacheTimeout = setTimeout(() => {
         this.cachedMetrics.delete(cacheKey);
       }, this.config.cacheTTLSeconds * 1000);
+      cacheTimeout.unref();
     }
 
     // Emit event

@@ -103,3 +103,85 @@ export interface TestingModuleStatus {
   lastResults?: TestResults;
   browserSessions: number;
 }
+
+// Browser Analysis for Frontend Test Observability
+export interface BrowserAnalysis {
+  summary: string;
+  consoleErrors: ConsoleLog[];
+  consoleWarnings: ConsoleLog[];
+  consoleInfo: ConsoleLog[];
+  failedRequests: NetworkRequest[];
+  slowRequests: NetworkRequest[];
+  pageErrors: BrowserError[];
+  healthScore: number; // 0-100
+  issues: string[];
+  recommendations: string[];
+}
+
+// ═══════════════════════════════════════════════════════════════
+//                      OBSERVABILITY TYPES
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Prioritized observability output for test failures.
+ * Priority: 1. Console (errors/warnings) 2. Network (failures) 3. Trace 4. Screenshot
+ */
+export interface TestingObservability {
+  runId: string;
+  timestamp: string; // ISO string
+  status: 'passed' | 'failed' | 'skipped';
+
+  // Primary diagnostic data (prioritized)
+  console: ObservabilityConsole;
+  network: ObservabilityNetwork;
+  trace?: ObservabilityTrace;
+
+  // Secondary (screenshot is supplementary)
+  screenshot?: {
+    path: string;
+    captured: boolean;
+  };
+
+  // Summary for quick triage
+  summary: string;
+  failingTests: string[]; // capped to 10
+  healthScore: number; // 0-100
+}
+
+export interface ObservabilityConsole {
+  errors: Array<{
+    message: string;
+    source?: string;
+    timestamp: string;
+  }>;
+  warnings: Array<{
+    message: string;
+    source?: string;
+    timestamp: string;
+  }>;
+  errorCount: number;
+  warningCount: number;
+}
+
+export interface ObservabilityNetwork {
+  failures: Array<{
+    url: string;
+    method: string;
+    status: number;
+    error?: string;
+    timestamp: string;
+  }>;
+  timeouts: Array<{
+    url: string;
+    method: string;
+    duration: number;
+  }>;
+  failureCount: number;
+  timeoutCount: number;
+}
+
+export interface ObservabilityTrace {
+  available: boolean;
+  path?: string;
+  retryCount?: number;
+}

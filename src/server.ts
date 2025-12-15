@@ -34,10 +34,23 @@ import {
 } from './core/module-factory.js';
 
 // ═══════════════════════════════════════════════════════════════
+//                      SERVER OPTIONS
+// ═══════════════════════════════════════════════════════════════
+
+export interface CCGServerOptions {
+  /** Resume from previous session */
+  resume?: boolean;
+  /** Specific session file to resume from */
+  sessionFile?: string;
+  /** Project root override */
+  projectRoot?: string;
+}
+
+// ═══════════════════════════════════════════════════════════════
 //                      SERVER FACTORY
 // ═══════════════════════════════════════════════════════════════
 
-export async function createCCGServer(): Promise<Server> {
+export async function createCCGServer(options: CCGServerOptions = {}): Promise<Server> {
   // Determine project root from environment or current working directory
   const projectRoot = process.env.CCG_PROJECT_ROOT || process.cwd();
   const logLevel = (process.env.CCG_LOG_LEVEL as 'debug' | 'info' | 'warn' | 'error') || 'info';
@@ -70,6 +83,41 @@ export async function createCCGServer(): Promise<Server> {
 
   // Initialize all enabled modules
   await initializeModules(modules, config, logger);
+
+  // Handle session resume if requested
+  if (options.resume) {
+    try {
+      const sessionService = modules.session.getService();
+      let sessionFile = options.sessionFile;
+
+      // If no specific file, find the latest session
+      if (!sessionFile) {
+        sessionFile = sessionService.findLatestSession() ?? undefined;
+      }
+
+      if (sessionFile) {
+        logger.info(`Resuming from session: ${sessionFile}`);
+        const resumed = await sessionService.loadFromFile(sessionFile);
+        logger.info(`Session resumed: ${resumed.sessionId} (resume count: ${resumed.metadata?.resumeCount})`);
+
+        // Record resume event
+        sessionService.recordEvent({
+          ts: new Date().toISOString(),
+          type: 'session:resumed',
+          summary: `Resumed from ${sessionFile}`,
+          data: {
+            previousSessionId: resumed.sessionId,
+            timelineCount: resumed.timeline.length,
+          },
+        });
+      } else {
+        logger.warn('No previous session found to resume');
+      }
+    } catch (error) {
+      logger.error('Failed to resume session:', error);
+      // Continue with fresh session
+    }
+  }
 
   // Create MCP Server
   const server = new Server(

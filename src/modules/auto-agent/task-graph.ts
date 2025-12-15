@@ -15,6 +15,15 @@
 import { v4 as uuid } from 'uuid';
 import { Logger } from '../../core/logger.js';
 import { EventBus } from '../../core/event-bus.js';
+import { StateManager } from '../../core/state-manager.js';
+import {
+  CompletionGatesService,
+  GatePolicyConfig,
+  GatePolicyResult,
+  EvidenceState,
+  GateEvaluationContext,
+} from '../../core/completion-gates.js';
+import { TASK_TEMPLATES, DEPENDENCY_TEMPLATES } from './task-graph-templates.js';
 
 // ═══════════════════════════════════════════════════════════════
 //                         TYPES
@@ -51,6 +60,11 @@ export interface TaskNode {
   priority: number;          // Higher = more important
   retryCount: number;
   maxRetries: number;
+
+  // Gate conditions (Completion Gates integration)
+  gatePolicy?: Partial<GatePolicyConfig>;  // Gate requirements for this node
+  gateResult?: GatePolicyResult;           // Last gate evaluation result
+  gateRequired: boolean;                   // Whether gates must pass to complete
 }
 
 export interface TaskGraph {
@@ -98,82 +112,15 @@ export interface CreateGraphParams {
   customNodes?: Partial<TaskNode>[];
 }
 
-// ═══════════════════════════════════════════════════════════════
-//                      TASK TEMPLATES
-// ═══════════════════════════════════════════════════════════════
-
-const TASK_TEMPLATES: Record<string, Partial<TaskNode>[]> = {
-  feature: [
-    { name: 'Analyze Requirements', phase: 'analysis', tools: ['documents_search', 'memory_recall', 'rag_query'], estimatedTokens: 500, priority: 10 },
-    { name: 'Search Related Code', phase: 'analysis', tools: ['rag_query', 'rag_related_code'], estimatedTokens: 400, priority: 9 },
-    { name: 'Design Solution', phase: 'plan', tools: ['thinking_get_model', 'memory_recall'], estimatedTokens: 800, priority: 8 },
-    { name: 'Create Interface', phase: 'plan', tools: ['thinking_get_style'], estimatedTokens: 400, priority: 7 },
-    { name: 'Implement Core', phase: 'impl', tools: ['latent_apply_patch', 'guard_validate'], estimatedTokens: 2000, priority: 10 },
-    { name: 'Implement Helpers', phase: 'impl', tools: ['latent_apply_patch', 'guard_validate'], estimatedTokens: 1000, priority: 6 },
-    { name: 'Write Unit Tests', phase: 'test', tools: ['testing_run'], estimatedTokens: 1000, priority: 8 },
-    { name: 'Integration Test', phase: 'test', tools: ['testing_run'], estimatedTokens: 600, priority: 7 },
-    { name: 'Final Review', phase: 'review', tools: ['guard_validate', 'testing_run'], estimatedTokens: 500, priority: 9 },
-  ],
-  bugfix: [
-    { name: 'Reproduce Bug', phase: 'analysis', tools: ['memory_recall', 'testing_run'], estimatedTokens: 400, priority: 10 },
-    { name: 'Analyze Root Cause', phase: 'analysis', tools: ['rag_query', 'rag_related_code'], estimatedTokens: 600, priority: 9 },
-    { name: 'Plan Fix', phase: 'plan', tools: ['thinking_get_model'], estimatedTokens: 300, priority: 8 },
-    { name: 'Apply Fix', phase: 'impl', tools: ['latent_apply_patch', 'guard_validate'], estimatedTokens: 800, priority: 10 },
-    { name: 'Write Regression Test', phase: 'test', tools: ['testing_run'], estimatedTokens: 500, priority: 9 },
-    { name: 'Verify Fix', phase: 'review', tools: ['testing_run_affected'], estimatedTokens: 400, priority: 10 },
-  ],
-  refactor: [
-    { name: 'Map Current Structure', phase: 'analysis', tools: ['rag_query', 'documents_search'], estimatedTokens: 600, priority: 9 },
-    { name: 'Identify Patterns', phase: 'analysis', tools: ['rag_related_code', 'thinking_get_style'], estimatedTokens: 500, priority: 8 },
-    { name: 'Plan Transformation', phase: 'plan', tools: ['thinking_get_model', 'thinking_get_workflow'], estimatedTokens: 800, priority: 10 },
-    { name: 'Add Safety Tests', phase: 'test', tools: ['testing_run'], estimatedTokens: 1000, priority: 10 },
-    { name: 'Apply Refactoring', phase: 'impl', tools: ['latent_apply_patch', 'guard_validate'], estimatedTokens: 1500, priority: 9 },
-    { name: 'Update Tests', phase: 'test', tools: ['testing_run'], estimatedTokens: 500, priority: 8 },
-    { name: 'Verify No Regressions', phase: 'review', tools: ['testing_run', 'guard_validate'], estimatedTokens: 400, priority: 10 },
-  ],
-  review: [
-    { name: 'Load Context', phase: 'analysis', tools: ['memory_recall', 'documents_search'], estimatedTokens: 400, priority: 8 },
-    { name: 'Analyze Code Structure', phase: 'analysis', tools: ['rag_query'], estimatedTokens: 500, priority: 9 },
-    { name: 'Security Check', phase: 'analysis', tools: ['guard_validate'], estimatedTokens: 600, priority: 10 },
-    { name: 'Quality Check', phase: 'analysis', tools: ['guard_validate', 'thinking_get_style'], estimatedTokens: 500, priority: 9 },
-    { name: 'Generate Report', phase: 'review', tools: ['memory_store', 'documents_create'], estimatedTokens: 400, priority: 8 },
-  ],
-};
-
-// DAG dependency templates (which nodes depend on which)
-const DEPENDENCY_TEMPLATES: Record<string, number[][]> = {
-  // [dependentIndex, dependsOnIndex] pairs
-  feature: [
-    [2, 0], [2, 1],   // Design depends on Analyze + Search
-    [3, 2],           // Interface depends on Design
-    [4, 3],           // Core depends on Interface
-    [5, 4],           // Helpers depends on Core
-    [6, 4],           // Unit Tests depends on Core (parallel with Helpers)
-    [7, 5], [7, 6],   // Integration depends on Helpers + Unit Tests
-    [8, 7],           // Review depends on Integration
-  ],
-  bugfix: [
-    [1, 0],           // Analyze depends on Reproduce
-    [2, 1],           // Plan depends on Analyze
-    [3, 2],           // Fix depends on Plan
-    [4, 3],           // Test depends on Fix
-    [5, 4],           // Verify depends on Test
-  ],
-  refactor: [
-    [1, 0],           // Patterns depends on Map
-    [2, 0], [2, 1],   // Plan depends on Map + Patterns
-    [3, 2],           // Safety Tests depends on Plan
-    [4, 3],           // Apply depends on Safety Tests
-    [5, 4],           // Update Tests depends on Apply
-    [6, 5],           // Verify depends on Update Tests
-  ],
-  review: [
-    [1, 0],           // Analyze depends on Load
-    [2, 1],           // Security depends on Analyze
-    [3, 1],           // Quality depends on Analyze (parallel with Security)
-    [4, 2], [4, 3],   // Report depends on Security + Quality
-  ],
-};
+/**
+ * Result of attempting to complete a node with gate checking
+ */
+export interface NodeCompletionResult {
+  success: boolean;
+  node?: TaskNode;
+  gateResult?: GatePolicyResult;
+  blockedReason?: string;
+}
 
 // ═══════════════════════════════════════════════════════════════
 //                      TASK GRAPH SERVICE
@@ -183,10 +130,28 @@ export class TaskGraphService {
   private graphs: Map<string, TaskGraph> = new Map();
   private logger: Logger;
   private eventBus: EventBus;
+  private stateManager?: StateManager;
+  private completionGates: CompletionGatesService;
 
-  constructor(logger: Logger, eventBus: EventBus) {
+  constructor(logger: Logger, eventBus: EventBus, stateManager?: StateManager) {
     this.logger = logger;
     this.eventBus = eventBus;
+    this.stateManager = stateManager;
+    this.completionGates = new CompletionGatesService();
+  }
+
+  /**
+   * Set StateManager for evidence retrieval (deferred initialization)
+   */
+  setStateManager(stateManager: StateManager): void {
+    this.stateManager = stateManager;
+  }
+
+  /**
+   * Update gate policy configuration
+   */
+  updateGatePolicy(config: Partial<GatePolicyConfig>): void {
+    this.completionGates.updateConfig(config);
   }
 
   // ─────────────────────────────────────────────────────────────
@@ -214,11 +179,17 @@ export class TaskGraphService {
       const nodeId = uuid();
       nodeIds.push(nodeId);
 
+      // Determine if gates are required based on phase
+      // impl, test, and review phases require gates by default
+      const gatePhases: TaskPhase[] = ['impl', 'test', 'review'];
+      const phase = t.phase || 'impl';
+      const gateRequired = t.gateRequired ?? gatePhases.includes(phase);
+
       const node: TaskNode = {
         id: nodeId,
         name: t.name || `Task ${index + 1}`,
         description: t.description || '',
-        phase: t.phase || 'impl',
+        phase,
         status: 'pending',
         dependsOn: [],
         dependents: [],
@@ -229,6 +200,8 @@ export class TaskGraphService {
         retryCount: 0,
         maxRetries: 3,
         createdAt: new Date(),
+        gateRequired,
+        gatePolicy: t.gatePolicy,
       };
 
       nodes.set(nodeId, node);
@@ -369,7 +342,7 @@ export class TaskGraphService {
   }
 
   /**
-   * Complete a node
+   * Complete a node (bypasses gate checking - use tryCompleteNode for gated completion)
    */
   completeNode(
     graphId: string,
@@ -383,6 +356,166 @@ export class TaskGraphService {
     const node = graph.nodes.get(nodeId);
     if (!node) return undefined;
 
+    return this.finalizeNodeCompletion(graph, node, result, tokensUsed);
+  }
+
+  /**
+   * Complete a node with explicit gate bypass - emits audit event
+   * Use this when intentionally bypassing gates (e.g., for analysis/plan phases)
+   */
+  completeNodeBypass(
+    graphId: string,
+    nodeId: string,
+    result?: unknown,
+    tokensUsed?: number,
+    reason?: string
+  ): TaskNode | undefined {
+    const graph = this.graphs.get(graphId);
+    if (!graph) return undefined;
+
+    const node = graph.nodes.get(nodeId);
+    if (!node) return undefined;
+
+    // Emit audit trail for bypass
+    this.eventBus.emit({
+      type: 'taskgraph:node:bypass_gates',
+      timestamp: new Date(),
+      data: {
+        graphId,
+        nodeId,
+        name: node.name,
+        phase: node.phase,
+        gateRequired: node.gateRequired,
+        reason: reason || 'Manual bypass',
+      },
+    });
+
+    this.logger.info(`Node "${node.name}" gates bypassed: ${reason || 'Manual bypass'}`);
+
+    return this.finalizeNodeCompletion(graph, node, result, tokensUsed);
+  }
+
+  /**
+   * Try to complete a node with gate checking
+   * Returns gate result if blocked, completes if passed
+   */
+  tryCompleteNode(
+    graphId: string,
+    nodeId: string,
+    result?: unknown,
+    tokensUsed?: number
+  ): { success: boolean; node?: TaskNode; gateResult?: GatePolicyResult; blockedReason?: string } {
+    const graph = this.graphs.get(graphId);
+    if (!graph) {
+      return { success: false, blockedReason: 'Graph not found' };
+    }
+
+    const node = graph.nodes.get(nodeId);
+    if (!node) {
+      return { success: false, blockedReason: 'Node not found' };
+    }
+
+    // If gates not required, complete directly
+    if (!node.gateRequired) {
+      const completed = this.finalizeNodeCompletion(graph, node, result, tokensUsed);
+      return { success: true, node: completed };
+    }
+
+    // Check gates
+    const gateResult = this.evaluateNodeGates(node, graph);
+    node.gateResult = gateResult;
+
+    if (gateResult.status === 'passed') {
+      const completed = this.finalizeNodeCompletion(graph, node, result, tokensUsed);
+      return { success: true, node: completed, gateResult };
+    }
+
+    // Blocked or pending
+    this.logger.info(`Node "${node.name}" gate check: ${gateResult.status}`, {
+      missingEvidence: gateResult.missingEvidence,
+      failingEvidence: gateResult.failingEvidence.map(f => f.type),
+    });
+
+    this.eventBus.emit({
+      type: 'taskgraph:node:gated',
+      timestamp: new Date(),
+      data: {
+        graphId,
+        nodeId,
+        name: node.name,
+        gateStatus: gateResult.status,
+        missingEvidence: gateResult.missingEvidence,
+        nextToolCalls: gateResult.nextToolCalls,
+      },
+    });
+
+    return {
+      success: false,
+      node,
+      gateResult,
+      blockedReason: gateResult.blockedReason,
+    };
+  }
+
+  /**
+   * Evaluate gates for a node
+   */
+  private evaluateNodeGates(node: TaskNode, graph: TaskGraph): GatePolicyResult {
+    // Get evidence from StateManager
+    const evidence = this.getEvidenceState();
+
+    // Build context
+    const context: GateEvaluationContext = {
+      taskId: node.id,
+      taskType: this.inferTaskType(graph.name),
+      taskName: node.name,
+    };
+
+    // Apply node-specific policy if present
+    if (node.gatePolicy) {
+      this.completionGates.updateConfig(node.gatePolicy);
+    }
+
+    return this.completionGates.evaluateCompletionGates(evidence, context);
+  }
+
+  /**
+   * Get evidence state from StateManager
+   */
+  private getEvidenceState(): EvidenceState {
+    if (!this.stateManager) {
+      return { lastGuardRun: null, lastTestRun: null };
+    }
+
+    return this.stateManager.getEvidenceState();
+  }
+
+  /**
+   * Infer task type from graph name for context-aware gate args
+   */
+  private inferTaskType(graphName: string): string | undefined {
+    const lower = graphName.toLowerCase();
+    if (lower.includes('frontend') || lower.includes('component') || lower.includes('ui')) {
+      return 'frontend';
+    }
+    if (lower.includes('backend') || lower.includes('api') || lower.includes('server')) {
+      return 'backend';
+    }
+    if (lower.includes('refactor')) {
+      return 'refactor';
+    }
+    return undefined;
+  }
+
+  /**
+   * Finalize node completion (internal helper)
+   */
+  private finalizeNodeCompletion(
+    graph: TaskGraph,
+    node: TaskNode,
+    result?: unknown,
+    tokensUsed?: number
+  ): TaskNode {
     node.status = 'completed';
     node.completedAt = new Date();
     node.result = result;
@@ -420,14 +553,14 @@ export class TaskGraphService {
       this.eventBus.emit({
         type: 'taskgraph:completed',
         timestamp: new Date(),
-        data: { graphId, tokensUsed: graph.actualTokensUsed },
+        data: { graphId: graph.id, tokensUsed: graph.actualTokensUsed },
       });
     }
 
     this.eventBus.emit({
       type: 'taskgraph:node:completed',
       timestamp: new Date(),
-      data: { graphId, nodeId, name: node.name },
+      data: { graphId: graph.id, nodeId: node.id, name: node.name },
     });
 
     return node;

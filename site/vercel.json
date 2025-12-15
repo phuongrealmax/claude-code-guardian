@@ -1,5 +1,11 @@
 {
   "framework": "nextjs",
   "buildCommand": "npm run build",
-  "outputDirectory": ".next"
+  "outputDirectory": ".next",
+  "rewrites": [
+    {
+      "source": "/google2be428d36c826426.html",
+      "destination": "/api/google-verify"
+    }
+  ]
 }

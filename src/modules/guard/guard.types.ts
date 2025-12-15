@@ -10,6 +10,21 @@ export {
   CustomRule,
 } from '../../core/types.js';
 
+// Re-export ruleset types
+export {
+  GuardRuleset,
+  getRulesForRuleset,
+  isValidRuleset,
+  getAvailableRulesets,
+  getRulesetDescription,
+  RULESET_REGISTRY,
+  FRONTEND_RULES,
+  BACKEND_RULES,
+  SECURITY_RULES,
+  TESTING_RULES,
+  DEFAULT_RULES,
+} from './guard.rulesets.js';
+
 // ═══════════════════════════════════════════════════════════════
 //                      GUARD RULE INTERFACE
 // ═══════════════════════════════════════════════════════════════
@@ -66,6 +81,12 @@ export interface ValidateOptions {
 
   /** Include suggestions in output */
   includeSuggestions?: boolean;
+
+  /** Ruleset to use (frontend, backend, security, testing, default) */
+  ruleset?: import('./guard.rulesets.js').GuardRuleset;
+
+  /** Task ID for evidence tagging */
+  taskId?: string;
 }
 
 /**
@@ -110,6 +131,68 @@ export interface RuleStatus {
 }
 
 // ═══════════════════════════════════════════════════════════════
+//                      RISK CLASSIFICATION
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Risk level for actions/commands
+ */
+export type RiskLevel = 'LOW' | 'MEDIUM' | 'HIGH' | 'BLOCK';
+
+/**
+ * Risk classification result
+ */
+export interface RiskClassification {
+  /** Overall risk level */
+  level: RiskLevel;
+
+  /** Reason for the classification */
+  reason: string;
+
+  /** Category of the action */
+  category: RiskCategory;
+
+  /** Matched pattern (if any) */
+  matchedPattern?: string;
+
+  /** Should auto-checkpoint before this action? */
+  shouldCheckpoint: boolean;
+
+  /** Additional metadata */
+  metadata?: Record<string, unknown>;
+}
+
+/**
+ * Risk category for classification
+ */
+export type RiskCategory =
+  | 'git'           // Git operations
+  | 'filesystem'    // File system operations
+  | 'shell'         // Shell/system commands
+  | 'database'      // Database operations
+  | 'network'       // Network operations
+  | 'process'       // Process management
+  | 'environment'   // Environment changes
+  | 'unknown';      // Unclassified
+
+/**
+ * Risk pattern definition
+ */
+export interface RiskPattern {
+  /** Pattern to match (regex or string) */
+  pattern: RegExp | string;
+
+  /** Risk level when matched */
+  level: RiskLevel;
+
+  /** Category */
+  category: RiskCategory;
+
+  /** Description of why this is risky */
+  description: string;
+}
+
+// ═══════════════════════════════════════════════════════════════
 //                      RESULT TYPES
 // ═══════════════════════════════════════════════════════════════
 
@@ -134,4 +217,52 @@ export interface TestCheckResult {
   issues: import('../../core/types.js').ValidationIssue[];
   analysis: TestAnalysis;
   formatted: string;
+}
+
+// ═══════════════════════════════════════════════════════════════
+//                      GUARD EVIDENCE (for Completion Gates)
+// ═══════════════════════════════════════════════════════════════
+
+// Re-export GuardEvidence from completion-gates for use with StateManager
+export { GuardEvidence } from '../../core/completion-gates.js';
+
+/**
+ * Detailed guard validation result for internal use.
+ * Contains more information than GuardEvidence for debugging/logging.
+ */
+export interface DetailedGuardResult {
+  /** Unique run ID */
+  runId: string;
+
+  /** ISO timestamp */
+  timestamp: string;
+
+  /** File that was validated */
+  filename: string;
+
+  /** Ruleset used (if any) */
+  ruleset?: string;
+
+  /** Whether validation passed */
+  passed: boolean;
+
+  /** Whether validation blocked */
+  blocked: boolean;
+
+  /** Number of issues found */
+  issueCount: number;
+
+  /** List of failing rule names */
+  failingRules: string[];
+
+  /** Top issues (capped to 5 for storage efficiency) */
+  topIssues: Array<{
+    rule: string;
+    severity: string;
+    message: string;
+    line?: number;
+  }>;
+
+  /** Task ID this evidence belongs to */
+  taskId?: string;
 }

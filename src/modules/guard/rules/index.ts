@@ -12,6 +12,11 @@ export { DisabledFeatureRule } from './disabled-feature.rule.js';
 export { EmptyCatchRule } from './empty-catch.rule.js';
 export { EmojiCodeRule } from './emoji-code.rule.js';
 
+// Frontend Quality Rules
+export { LargeComponentRule } from './large-component.rule.js';
+export { InlineStylesRule } from './inline-styles.rule.js';
+export { MixedConcernsRule } from './mixed-concerns.rule.js';
+
 // Security Rules - OWASP Top 10
 export { SqlInjectionRule } from './sql-injection.rule.js';
 export { HardcodedSecretsRule } from './hardcoded-secrets.rule.js';

@@ -49,7 +49,7 @@ export type {
 } from './process/index.js';
 
 // Resource Module - Token and checkpoint management
-export { ResourceModule, ResourceService } from './resource/index.js';
+export { ResourceModule, ResourceService, ResumeStateProvider } from './resource/index.js';
 export type {
   ResourceStatus,
   CheckpointInfo,
@@ -58,6 +58,9 @@ export type {
   CheckpointData,
   CheckpointReason,
   TokenUsage,
+  GovernorState,
+  GovernorMode,
+  ResumeState,
 } from './resource/index.js';
 
 // Workflow Module - Task and progress tracking
@@ -163,6 +166,17 @@ export type {
   ErrorMemoryEntry,
 } from './auto-agent/index.js';
 
+// AST Module - Code parsing as MCP tools (MCP-first)
+export { ASTModule, ASTService, createASTModule } from './ast/index.js';
+export type {
+  ASTSymbol,
+  ASTParseResult,
+  ASTDependency,
+  ASTDependencyGraph,
+  ASTModuleConfig,
+  ASTModuleStatus,
+} from './ast/index.js';
+
 // ═══════════════════════════════════════════════════════════════
 //                      MODULE INTERFACE
 // ═══════════════════════════════════════════════════════════════
@@ -233,6 +247,7 @@ import { DocumentsModule } from './documents/index.js';
 import { AgentsModule } from './agents/index.js';
 import { LatentModule, DEFAULT_LATENT_CONFIG } from './latent/index.js';
 import { AutoAgentModule, DEFAULT_AUTO_AGENT_CONFIG } from './auto-agent/index.js';
+import { ASTModule, createASTModule } from './ast/index.js';
 
 /**
  * Initialized modules interface for HookRouter
@@ -248,6 +263,7 @@ export interface InitializedModules {
   agents: AgentsModule;
   latent: LatentModule;
   autoAgent: AutoAgentModule;
+  ast: ASTModule;
 }
 
 /**
@@ -446,7 +462,46 @@ export async function initializeModules(
   const autoAgentModule = new AutoAgentModule(autoAgentConfig, eventBus, logger);
   await autoAgentModule.initialize();
 
-  logger.info('All CCG modules initialized');
+  // Wire up Token Budget Governor: AutoAgent checks Resource for token limits
+  autoAgentModule.setGovernorStateProvider(() => resourceModule.getGovernorState());
+  logger.debug('Token Budget Governor wired: AutoAgent → Resource');
+
+  // P1: Wire up ResumeStateProvider: Resource gets context from Workflow and Latent
+  resourceModule.setResumeStateProvider({
+    async getCurrentTask() {
+      const result = await workflowModule.handleTool('workflow_current', {});
+      const task = (result as { task?: { id: string; name: string; status: string } })?.task;
+      return task || null;
+    },
+    async getActiveLatentContext() {
+      const contexts = await latentModule.handleTool('latent_list_contexts', {});
+      const contextList = contexts as Array<{ taskId: string; phase: string }>;
+      // Return the first active (non-completed) context
+      if (contextList && contextList.length > 0) {
+        return { taskId: contextList[0].taskId, phase: contextList[0].phase };
+      }
+      return null;
+    },
+    async getRecentFailures() {
+      // Get recent failures from error memory
+      const result = await autoAgentModule.handleTool('auto_recall_errors', {
+        limit: 5,
+        minSimilarity: 0
+      });
+      const errors = (result as { errors?: Array<{ errorType: string; errorMessage: string; storedAt: Date }> })?.errors || [];
+      return errors.map(e => ({
+        type: e.errorType,
+        message: e.errorMessage,
+        timestamp: e.storedAt
+      }));
+    }
+  });
+  logger.debug('ResumeStateProvider wired: Resource → Workflow, Latent, AutoAgent');
+
+  // Initialize AST Module (MCP-first code parsing)
+  const astModule = createASTModule(eventBus);
+
+  logger.info('All CCG modules initialized (including AST)');
 
   return {
     memory: memoryModule,
@@ -459,6 +514,7 @@ export async function initializeModules(
     agents: agentsModule,
     latent: latentModule,
     autoAgent: autoAgentModule,
+    ast: astModule,
   };
 }
 

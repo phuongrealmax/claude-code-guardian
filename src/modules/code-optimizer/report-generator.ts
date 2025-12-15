@@ -22,64 +22,39 @@ import {
   RefactorPlanOutput,
   ScanRepositoryOutput,
 } from './types.js';
-import { SessionStorage, type SessionSnapshot, type TechDebtIndexBreakdown } from './session-storage.js';
+import { SessionStorage, type SessionSnapshot } from './session-storage.js';
+import {
+  generateTechDebtIndexSection,
+  generateTechDebtSummary,
+  generateBeforeAfterSection,
+  generateROISection,
+  generateUpgradePrompt,
+} from './report-sections-advanced.js';
 
 // ═══════════════════════════════════════════════════════════════
-//                      LICENSE UTILITIES
+//                      LICENSE INTEGRATION
 // ═══════════════════════════════════════════════════════════════
 
-type LicenseTier = 'dev' | 'team' | 'enterprise';
-
-interface LicenseConfig {
-  licenseKey: string;
-  tier: LicenseTier;
-  status: string;
-  activatedAt: number;
-  features: string[];
-}
-
-/**
- * Get current license tier from config file
- * Returns 'dev' (free) if no license is found
- */
-function getCurrentLicenseTier(projectRoot: string): LicenseTier {
-  // Check project-level license first
-  const projectLicensePath = path.join(projectRoot, '.ccg', 'license.json');
-  if (fs.existsSync(projectLicensePath)) {
-    try {
-      const config = JSON.parse(fs.readFileSync(projectLicensePath, 'utf-8')) as LicenseConfig;
-      if (config.status === 'active') {
-        return config.tier;
-      }
-    } catch (e) {
-      // Ignore parse errors
-    }
-  }
-
-  // Check global license
-  const homeDir = process.env.HOME || process.env.USERPROFILE || '';
-  if (homeDir) {
-    const globalLicensePath = path.join(homeDir, '.ccg', 'license.json');
-    if (fs.existsSync(globalLicensePath)) {
-      try {
-        const config = JSON.parse(fs.readFileSync(globalLicensePath, 'utf-8')) as LicenseConfig;
-        if (config.status === 'active') {
-          return config.tier;
-        }
-      } catch (e) {
-        // Ignore parse errors
-      }
-    }
-  }
-
-  return 'dev'; // Free tier default
-}
+import {
+  getCurrentTier,
+  hasFeature,
+  Features,
+  type LicenseTier,
+} from '../../core/license-integration.js';
 
 /**
  * Check if a tier has access to advanced reports
+ * Uses the license gateway to check feature access
  */
-function hasAdvancedReports(tier: LicenseTier): boolean {
-  return tier === 'team' || tier === 'enterprise';
+function hasAdvancedReports(): boolean {
+  return hasFeature(Features.ADVANCED_REPORTS);
+}
+
+/**
+ * Get current license tier from gateway
+ */
+function getCurrentLicenseTier(): LicenseTier {
+  return getCurrentTier();
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -99,8 +74,8 @@ export function generateReport(
   const repoName = input.repoName || path.basename(projectRoot);
 
   // Check license tier for advanced features
-  const licenseTier = getCurrentLicenseTier(projectRoot);
-  const isAdvanced = hasAdvancedReports(licenseTier);
+  const licenseTier = getCurrentLicenseTier();
+  const isAdvanced = hasAdvancedReports();
 
   // Header
   sections.push({
@@ -460,301 +435,6 @@ function generateNextStepsSection(hotspots?: HotspotsOutput): string {
   }
 
   return content;
-}
-
-// ═══════════════════════════════════════════════════════════════
-//                  TEAM+ ADVANCED SECTIONS
-// ═══════════════════════════════════════════════════════════════
-
-function generateTechDebtIndexSection(
-  currentHotspots: HotspotsOutput,
-  currentMetrics: MetricsOutput,
-  scanResult: ScanRepositoryOutput,
-  previousSession: SessionSnapshot | null | undefined,
-  sessionStorage: SessionStorage,
-  repoName: string
-): string {
-  // Calculate current Tech Debt Index
-  const highComplexityFiles = currentMetrics.files.filter(f => f.complexityScore > 50).length;
-  const largeFiles = currentMetrics.files.filter(f => f.lines > 500).length;
-  const totalHotspotScore = currentHotspots.hotspots.reduce((sum, h) => sum + h.score, 0);
-
-  const currentIndex = sessionStorage.calculateTechDebtIndex(
-    currentHotspots.summary.hotspotsFound,
-    totalHotspotScore,
-    currentMetrics.aggregate.avgComplexityScore,
-    highComplexityFiles,
-    largeFiles,
-    currentMetrics.files.length,
-    scanResult.totalLinesApprox
-  );
-
-  // Get grade
-  let grade: string;
-  let gradeEmoji: string;
-  let interpretation: string;
-
-  if (currentIndex <= 20) {
-    grade = 'A';
-    gradeEmoji = '🟢';
-    interpretation = 'Excellent! Your codebase is well-maintained with minimal tech debt.';
-  } else if (currentIndex <= 40) {
-    grade = 'B';
-    gradeEmoji = '🟢';
-    interpretation = 'Good condition. A few areas could use attention, but overall healthy.';
-  } else if (currentIndex <= 60) {
-    grade = 'C';
-    gradeEmoji = '🟡';
-    interpretation = 'Fair. Tech debt is accumulating - consider allocating time for cleanup.';
-  } else if (currentIndex <= 80) {
-    grade = 'D';
-    gradeEmoji = '🟠';
-    interpretation = 'Poor. Significant tech debt is impacting maintainability. Prioritize refactoring.';
-  } else {
-    grade = 'F';
-    gradeEmoji = '🔴';
-    interpretation = 'Critical! High tech debt is likely causing bugs and slowing development.';
-  }
-
-  let content = `## Tech Debt Index
-
-> Your codebase health at a glance (Team/Enterprise feature)
-
-### Current Score
-
-| ${gradeEmoji} Grade **${grade}** | Index: **${currentIndex}/100** |
-|:---:|:---:|
-
-*${interpretation}*
-
-`;
-
-  // Calculate component breakdown
-  const hotspotCountScore = Math.min(currentHotspots.summary.hotspotsFound / 20, 1) * 20;
-  const hotspotScoreComponent = Math.min(totalHotspotScore / 1000, 1) * 20;
-  const hotspotComponent = Math.round(hotspotCountScore + hotspotScoreComponent);
-
-  const complexityBase = Math.min(Math.max(currentMetrics.aggregate.avgComplexityScore - 20, 0) / 30, 1) * 15;
-  const highComplexityPenalty = Math.min(highComplexityFiles / 10, 1) * 15;
-  const complexityComponent = Math.round(complexityBase + highComplexityPenalty);
-
-  const largeFileRatio = currentMetrics.files.length > 0 ? largeFiles / currentMetrics.files.length : 0;
-  const sizeComponent = Math.round(Math.min(largeFileRatio * 4, 1) * 20);
-
-  const debtDensity = scanResult.totalLinesApprox > 0
-    ? (currentHotspots.summary.hotspotsFound / (scanResult.totalLinesApprox / 1000))
-    : 0;
-  const densityComponent = Math.round(Math.min(debtDensity / 5, 1) * 10);
-
-  content += `### Score Breakdown
-
-| Component | Score | Max | Description |
-|-----------|-------|-----|-------------|
-| Hotspots | ${hotspotComponent} | 40 | Based on hotspot count and total score |
-| Complexity | ${complexityComponent} | 30 | Based on avg complexity and high-complexity files |
-| File Size | ${sizeComponent} | 20 | Based on large file ratio |
-| Debt Density | ${densityComponent} | 10 | Hotspots per 1000 LOC |
-| **Total** | **${currentIndex}** | **100** | Lower is better |
-
-`;
-
-  // Show delta if previous session exists
-  if (previousSession && previousSession.summary.techDebtIndex !== undefined) {
-    const prevIndex = previousSession.summary.techDebtIndex;
-    const delta = currentIndex - prevIndex;
-    const deltaEmoji = delta < 0 ? '📉' : delta > 0 ? '📈' : '➡️';
-    const deltaText = delta < 0 ? 'improved' : delta > 0 ? 'increased' : 'unchanged';
-
-    content += `### Change from Previous
-
-| Previous | Current | Delta |
-|----------|---------|-------|
-| ${prevIndex} | ${currentIndex} | ${deltaEmoji} ${delta > 0 ? '+' : ''}${delta} (${deltaText}) |
-
-`;
-  }
-
-  return content;
-}
-
-function generateTechDebtSummary(
-  currentHotspots: HotspotsOutput,
-  currentMetrics: MetricsOutput,
-  previousSession?: SessionSnapshot | null
-): string {
-  let content = `## Tech Debt Summary
-
-> This section is available with Team/Enterprise license.
-
-`;
-
-  // Calculate current totals
-  const currentHotspotCount = currentHotspots.summary.hotspotsFound;
-  const currentTotalScore = currentHotspots.hotspots.reduce((sum, h) => sum + h.score, 0);
-  const currentHighComplexityFiles = currentMetrics.files.filter(f => f.complexityScore > 50).length;
-  const currentLargeFiles = currentMetrics.files.filter(f => f.lines > 500).length;
-
-  if (previousSession) {
-    // Calculate deltas
-    const prevHotspotCount = previousSession.summary.totalHotspots;
-    const prevTotalScore = previousSession.hotspots.hotspots.reduce((sum, h) => sum + h.score, 0);
-    const prevHighComplexityFiles = previousSession.metrics.files.filter((f: any) => f.complexityScore > 50).length;
-    const prevLargeFiles = previousSession.metrics.files.filter((f: any) => f.lines > 500).length;
-
-    const hotspotDelta = currentHotspotCount - prevHotspotCount;
-    const scoreDelta = currentTotalScore - prevTotalScore;
-    const complexityDelta = currentHighComplexityFiles - prevHighComplexityFiles;
-    const sizeDelta = currentLargeFiles - prevLargeFiles;
-
-    const formatDelta = (delta: number): string => {
-      if (delta === 0) return '—';
-      const sign = delta > 0 ? '+' : '';
-      const color = delta > 0 ? '🔴' : '🟢';
-      return `${color} ${sign}${delta}`;
-    };
-
-    const formatPercent = (prev: number, curr: number): string => {
-      if (prev === 0) return 'N/A';
-      const pct = ((curr - prev) / prev) * 100;
-      const sign = pct > 0 ? '+' : '';
-      return `${sign}${pct.toFixed(0)}%`;
-    };
-
-    content += `### Comparison with Previous Session
-
-| Metric | Previous | Current | Delta | Change |
-|--------|----------|---------|-------|--------|
-| Hotspots | ${prevHotspotCount} | ${currentHotspotCount} | ${formatDelta(hotspotDelta)} | ${formatPercent(prevHotspotCount, currentHotspotCount)} |
-| Total Score | ${prevTotalScore.toFixed(0)} | ${currentTotalScore.toFixed(0)} | ${formatDelta(Math.round(scoreDelta))} | ${formatPercent(prevTotalScore, currentTotalScore)} |
-| High-complexity files (>50) | ${prevHighComplexityFiles} | ${currentHighComplexityFiles} | ${formatDelta(complexityDelta)} | ${formatPercent(prevHighComplexityFiles, currentHighComplexityFiles)} |
-| Large files (>500 LOC) | ${prevLargeFiles} | ${currentLargeFiles} | ${formatDelta(sizeDelta)} | ${formatPercent(prevLargeFiles, currentLargeFiles)} |
-
-*Previous session: ${previousSession.sessionId} (${new Date(previousSession.timestamp).toLocaleDateString()})*
-`;
-  } else {
-    content += `### Current State
-
-| Metric | Value |
-|--------|-------|
-| Total Hotspots | ${currentHotspotCount} |
-| Total Hotspot Score | ${currentTotalScore.toFixed(0)} |
-| High-complexity files (>50) | ${currentHighComplexityFiles} |
-| Large files (>500 LOC) | ${currentLargeFiles} |
-
-*This is your first analysis. Run another analysis after making improvements to see progress!*
-`;
-  }
-
-  return content;
-}
-
-function generateBeforeAfterSection(
-  previousSession: SessionSnapshot,
-  currentHotspots: HotspotsOutput,
-  currentMetrics: MetricsOutput
-): string {
-  let content = `## Before vs After
-
-> Track your progress over time with session comparisons.
-
-`;
-
-  const prevDate = new Date(previousSession.timestamp).toLocaleDateString();
-  const currDate = new Date().toLocaleDateString();
-
-  content += `| Aspect | Before (${prevDate}) | After (${currDate}) |
-|--------|----------------------|---------------------|
-| Files Analyzed | ${previousSession.summary.filesAnalyzed} | ${currentMetrics.files.length} |
-| Avg Complexity | ${previousSession.summary.avgComplexity.toFixed(1)} | ${currentMetrics.aggregate.avgComplexityScore.toFixed(1)} |
-| Hotspots | ${previousSession.summary.totalHotspots} | ${currentHotspots.summary.hotspotsFound} |
-| Top Hotspot Score | ${previousSession.summary.topHotspotScore.toFixed(1)} | ${currentHotspots.hotspots[0]?.score.toFixed(1) || 0} |
-`;
-
-  // Highlight improvements
-  const complexityImproved = currentMetrics.aggregate.avgComplexityScore < previousSession.summary.avgComplexity;
-  const hotspotsReduced = currentHotspots.summary.hotspotsFound < previousSession.summary.totalHotspots;
-
-  if (complexityImproved || hotspotsReduced) {
-    content += `\n### Improvements\n\n`;
-    if (complexityImproved) {
-      const reduction = previousSession.summary.avgComplexity - currentMetrics.aggregate.avgComplexityScore;
-      content += `- Complexity reduced by ${reduction.toFixed(1)} points\n`;
-    }
-    if (hotspotsReduced) {
-      const reduction = previousSession.summary.totalHotspots - currentHotspots.summary.hotspotsFound;
-      content += `- ${reduction} fewer hotspots\n`;
-    }
-  }
-
-  return content;
-}
-
-function generateROISection(
-  previousSession: SessionSnapshot,
-  currentHotspots?: HotspotsOutput,
-  currentMetrics?: MetricsOutput
-): string {
-  let content = `## ROI Notes
-
-> Understand the business value of your optimization efforts.
-
-`;
-
-  if (!currentHotspots || !currentMetrics) {
-    content += `_Complete an optimization session to see ROI estimates._\n`;
-    return content;
-  }
-
-  const hotspotsReduced = previousSession.summary.totalHotspots - currentHotspots.summary.hotspotsFound;
-  const complexityReduced = previousSession.summary.avgComplexity - currentMetrics.aggregate.avgComplexityScore;
-
-  // Estimate time savings (very rough estimates)
-  // Assume each hotspot addressed saves ~2 hours of future maintenance
-  // Assume each complexity point reduced saves ~15 minutes of review time
-  const estimatedHoursSaved = hotspotsReduced > 0 ? hotspotsReduced * 2 : 0;
-  const estimatedReviewMinutes = complexityReduced > 0 ? complexityReduced * 15 : 0;
-
-  content += `### Estimated Benefits
-
-`;
-
-  if (hotspotsReduced > 0) {
-    content += `- **${hotspotsReduced} hotspots addressed**: Estimated ~${estimatedHoursSaved} hours of future maintenance avoided\n`;
-  }
-
-  if (complexityReduced > 0) {
-    content += `- **Complexity reduced by ${complexityReduced.toFixed(1)}**: Easier code reviews, ~${Math.round(estimatedReviewMinutes)} minutes saved per review cycle\n`;
-  }
-
-  if (hotspotsReduced <= 0 && complexityReduced <= 0) {
-    content += `- No measurable improvement yet. Continue addressing hotspots to see benefits.\n`;
-  }
-
-  content += `
-### Tips for Maximizing ROI
-
-1. **Focus on high-score hotspots first** - they represent the biggest maintenance burden
-2. **Track progress weekly** - run \`ccg code-optimize --report\` regularly
-3. **Set team goals** - aim to reduce total hotspot score by 20% per sprint
-`;
-
-  return content;
-}
-
-function generateUpgradePrompt(): string {
-  return `## Unlock Advanced Reports
-
-> **Upgrade to Team** for powerful insights:
->
-> - **Tech Debt Summary**: Track hotspots, complexity, and file metrics over time
-> - **Before vs After**: Visual comparisons between analysis sessions
-> - **ROI Notes**: Estimate time and cost savings from your improvements
-> - **Trend Analysis**: See your codebase health trajectory
->
-> Visit [codeguardian.studio/pricing](https://codeguardian.studio/pricing) to upgrade.
->
-> Or run \`ccg activate\` if you have a license key.
-`;
 }
 
 function generateFooter(licenseTier: LicenseTier): string {

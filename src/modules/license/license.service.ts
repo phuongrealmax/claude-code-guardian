@@ -1,6 +1,23 @@
 /**
  * License Service
  *
+ * @deprecated INTERNAL REFERENCE / LEGACY
+ *
+ * This file contains the server-side license database logic and will be
+ * moved to the private `cloud-backend` repository. It is NOT part of
+ * the default dev experience or quickstart flow.
+ *
+ * For license verification in the open-core CLI, use:
+ * - @ccg/cloud-client (packages/cloud-client/) - LicenseGateway interface
+ * - src/core/license-integration.ts - hasFeature(), getCurrentTier()
+ *
+ * The actual license database runs on the cloud backend at
+ * api.codeguardian.studio, NOT from this public repository.
+ *
+ * See docs/LICENSE_SYSTEM.md for architecture details.
+ *
+ * ---
+ * Original description:
  * Manages license creation, verification, and validation
  */
 

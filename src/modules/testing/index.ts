@@ -5,6 +5,11 @@ import { getTestingTools } from './testing.tools.js';
 import { TestingModuleConfig } from '../../core/types.js';
 import { EventBus } from '../../core/event-bus.js';
 import { Logger } from '../../core/logger.js';
+import { StateManager } from '../../core/state-manager.js';
+
+export interface TestingModuleOptions {
+  stateManager?: StateManager;
+}
 
 export class TestingModule {
   private service: TestingService;
@@ -13,9 +18,27 @@ export class TestingModule {
     config: TestingModuleConfig,
     eventBus: EventBus,
     logger: Logger,
-    projectRoot?: string
+    projectRoot?: string,
+    options?: TestingModuleOptions
   ) {
     this.service = new TestingService(config, eventBus, logger, projectRoot);
+    if (options?.stateManager) {
+      this.service.setStateManager(options.stateManager);
+    }
+  }
+
+  /**
+   * Set state manager for evidence persistence (deferred initialization)
+   */
+  setStateManager(stateManager: StateManager): void {
+    this.service.setStateManager(stateManager);
+  }
+
+  /**
+   * Set current task ID for evidence tagging
+   */
+  setCurrentTaskId(taskId: string | undefined): void {
+    this.service.setCurrentTaskId(taskId);
   }
 
   async initialize(): Promise<void> {
@@ -65,6 +88,9 @@ export class TestingModule {
 
       case 'testing_browser_errors':
         return this.service.getBrowserErrors(args.sessionId as string);
+
+      case 'testing_browser_analysis':
+        return this.service.getBrowserAnalysis(args.sessionId as string);
 
       case 'testing_browser_close':
         await this.service.closeBrowser(args.sessionId as string);

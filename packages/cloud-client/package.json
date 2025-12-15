@@ -1,0 +1,48 @@
+{
+  "name": "@ccg/cloud-client",
+  "version": "1.0.0",
+  "description": "License gateway client for Code Guardian Studio - handles license verification and feature flags",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./gateway": {
+      "import": "./dist/gateway/index.js",
+      "types": "./dist/gateway/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "vitest",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "codeguardian",
+    "license",
+    "gateway",
+    "cloud-client"
+  ],
+  "author": "Code Guardian Studio Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/phuongrealmax/claude-code-guardian",
+    "directory": "packages/cloud-client"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.0",
+    "vitest": "^1.0.0"
+  },
+  "files": [
+    "dist/",
+    "README.md"
+  ]
+}
