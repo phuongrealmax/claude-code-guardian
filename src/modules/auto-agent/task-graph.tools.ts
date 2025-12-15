@@ -3,8 +3,17 @@
  */
 
 import { z } from 'zod';
-import { TaskGraphService, CreateGraphParams, TaskPhase, NodeCompletionResult } from './task-graph.js';
+import {
+  TaskGraphService,
+  CreateGraphParams,
+  TaskPhase,
+  NodeCompletionResult,
+  WorkflowGraph,
+  WorkflowNode,
+  WorkflowEdge,
+} from './task-graph.js';
 import { TASK_TEMPLATES } from './task-graph-templates.js';
+import { WorkflowExecutor, TaskRunner } from './workflow-executor.js';
 
 /**
  * Create TaskGraph MCP tools
@@ -522,12 +531,139 @@ Use bypassGates=true only for analysis/plan phases or when manually overriding.`
         };
       },
     },
+
+    // ═══════════════════════════════════════════════════════════════
+    //          Sprint 7: Workflow DAG Executor
+    // ═══════════════════════════════════════════════════════════════
+
+    /**
+     * Execute a WorkflowGraph with DAG-based execution
+     * Supports parallelism, decision branching, and completion gates
+     */
+    auto_workflow_execute: {
+      description: `Execute a DAG-based workflow graph with support for:
+- Parallel execution (configurable concurrency)
+- Decision branching (conditional edges)
+- Completion gates integration (guard + test evidence required)
+- Bypass option for analysis/plan phases
+
+Returns execution summary with node states and any blocked nodes.`,
+      parameters: z.object({
+        graph: z.object({
+          version: z.string().default('1.0'),
+          entry: z.string().describe('Entry node ID'),
+          nodes: z.array(z.object({
+            id: z.string(),
+            kind: z.enum(['task', 'decision', 'join']),
+            label: z.string().optional(),
+            payload: z.record(z.string(), z.unknown()).optional(),
+            phase: z.enum(['analysis', 'plan', 'impl', 'review', 'test']).optional(),
+            gateRequired: z.boolean().optional(),
+            gatePolicy: z.object({
+              requireGuard: z.boolean().optional(),
+              requireTest: z.boolean().optional(),
+              maxAgeMs: z.number().optional(),
+            }).optional(),
+            timeoutMs: z.number().optional(),
+            retries: z.number().optional(),
+            onError: z.enum(['fail', 'skip', 'continue']).optional(),
+          })),
+          edges: z.array(z.object({
+            from: z.string(),
+            to: z.string(),
+            condition: z.object({
+              type: z.enum(['equals', 'exists', 'truthy']),
+              path: z.string(),
+              value: z.unknown().optional(),
+            }).optional(),
+          })),
+          defaults: z.object({
+            gateRequired: z.boolean().optional(),
+            gatePolicy: z.object({
+              requireGuard: z.boolean().optional(),
+              requireTest: z.boolean().optional(),
+              maxAgeMs: z.number().optional(),
+            }).optional(),
+            timeoutMs: z.number().optional(),
+            retries: z.number().optional(),
+          }).optional(),
+        }).describe('Workflow graph definition'),
+        context: z.record(z.string(), z.unknown()).optional().describe('Initial execution context'),
+        concurrencyLimit: z.number().min(1).max(10).optional().describe('Max parallel nodes (default: 1)'),
+        bypassGates: z.boolean().optional().describe('Bypass gate checking (use for analysis/plan)'),
+      }),
+      handler: async (params: {
+        graph: WorkflowGraph;
+        context?: Record<string, unknown>;
+        concurrencyLimit?: number;
+        bypassGates?: boolean;
+      }) => {
+        const executor = new WorkflowExecutor({
+          concurrencyLimit: params.concurrencyLimit || 1,
+          bypassGates: params.bypassGates || false,
+        });
+
+        try {
+          const summary = await executor.execute(
+            params.graph,
+            params.context || {},
+            {
+              concurrencyLimit: params.concurrencyLimit,
+              bypassGates: params.bypassGates,
+            }
+          );
+
+          // Convert Maps to plain objects for JSON serialization
+          const nodeStates: Record<string, string> = {};
+          const nodeResults: Record<string, unknown> = {};
+
+          summary.nodeStates.forEach((state, id) => {
+            nodeStates[id] = state;
+          });
+
+          summary.nodeResults.forEach((result, id) => {
+            nodeResults[id] = result;
+          });
+
+          return {
+            success: summary.status === 'completed',
+            graphId: summary.graphId,
+            status: summary.status,
+            nodeStates,
+            nodeResults,
+            blockedNodes: summary.blockedNodes,
+            skippedNodes: summary.skippedNodes,
+            failedNodes: summary.failedNodes,
+            completedNodes: summary.completedNodes,
+            durationMs: summary.totalDurationMs,
+            nextActions: summary.blockedNodes.length > 0
+              ? summary.blockedNodes.map(id => {
+                  const result = summary.nodeResults.get(id);
+                  return {
+                    nodeId: id,
+                    action: 'Run required gate tools',
+                    nextToolCalls: result?.nextToolCalls || [],
+                  };
+                })
+              : undefined,
+          };
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          return {
+            success: false,
+            error: message,
+          };
+        }
+      },
+    },
   };
 }
 
 export const TASK_GRAPH_TOOL_DEFINITIONS = [
   // Primary workflow entry point (NEW - Sprint 6)
   { name: 'auto_workflow_start', description: 'Start a gated workflow from template (feature/bugfix/refactor/review)' },
+  // Sprint 7: DAG Workflow Executor
+  { name: 'auto_workflow_execute', description: 'Execute a DAG workflow graph with parallelism, branching, and gates' },
   // Graph management
   { name: 'auto_create_graph', description: 'Create a DAG-based task graph (low-level)' },
   { name: 'auto_get_next_nodes', description: 'Get next executable nodes' },

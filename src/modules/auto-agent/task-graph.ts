@@ -123,6 +123,179 @@ export interface NodeCompletionResult {
 }
 
 // ═══════════════════════════════════════════════════════════════
+//                    WORKFLOW GRAPH TYPES (Sprint 7)
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Workflow node state - matches TaskNodeStatus semantics
+ * but adds 'blocked' for gate-blocked nodes
+ */
+export type WorkflowNodeState = 'pending' | 'running' | 'blocked' | 'skipped' | 'failed' | 'done';
+
+/**
+ * Workflow node kind
+ * - task: Executable task node
+ * - decision: Conditional branching based on context
+ * - join: Waits for all incoming edges before proceeding
+ */
+export type WorkflowNodeKind = 'task' | 'decision' | 'join';
+
+/**
+ * Edge condition for conditional branching
+ */
+export interface EdgeCondition {
+  type: 'equals' | 'exists' | 'truthy';
+  path: string; // dot-notation path in context (e.g., 'result.status')
+  value?: unknown; // for 'equals' type
+}
+
+/**
+ * Workflow edge connecting nodes
+ */
+export interface WorkflowEdge {
+  from: string;
+  to: string;
+  condition?: EdgeCondition; // Optional condition for decision nodes
+}
+
+/**
+ * Workflow node definition
+ */
+export interface WorkflowNode {
+  id: string;
+  kind: WorkflowNodeKind;
+  label?: string;
+  payload?: Record<string, unknown>; // Node-specific data (e.g., runner args)
+
+  // Phase and gating (precedence: explicit > phase default > global)
+  phase?: TaskPhase;
+  gateRequired?: boolean; // Explicit override
+  gatePolicy?: Partial<GatePolicyConfig>;
+
+  // Execution control
+  timeoutMs?: number;
+  retries?: number;
+  onError?: 'fail' | 'skip' | 'continue';
+}
+
+/**
+ * Complete Workflow Graph definition
+ */
+export interface WorkflowGraph {
+  version: string; // Schema version (e.g., '1.0')
+  entry: string; // Entry node ID
+  nodes: WorkflowNode[];
+  edges: WorkflowEdge[];
+  defaults?: {
+    gateRequired?: boolean;
+    gatePolicy?: Partial<GatePolicyConfig>;
+    timeoutMs?: number;
+    retries?: number;
+  };
+}
+
+/**
+ * Result of node execution
+ */
+export interface WorkflowNodeResult {
+  status: WorkflowNodeState;
+  output?: unknown;
+  reason?: string;
+  nextToolCalls?: Array<{ tool: string; args: Record<string, unknown>; reason: string }>;
+  gateResult?: GatePolicyResult;
+}
+
+/**
+ * Workflow execution summary
+ */
+export interface WorkflowExecutionSummary {
+  graphId: string;
+  status: 'completed' | 'failed' | 'blocked';
+  nodeStates: Map<string, WorkflowNodeState>;
+  nodeResults: Map<string, WorkflowNodeResult>;
+  blockedNodes: string[];
+  skippedNodes: string[];
+  failedNodes: string[];
+  completedNodes: string[];
+  startedAt: Date;
+  completedAt?: Date;
+  totalDurationMs: number;
+}
+
+// ═══════════════════════════════════════════════════════════════
+//                    WORKFLOW GRAPH HELPERS
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Get a value from an object using dot-notation path
+ * e.g., getPathValue({ result: { status: 'ok' } }, 'result.status') => 'ok'
+ */
+export function getPathValue(obj: Record<string, unknown>, path: string): unknown {
+  const parts = path.split('.');
+  let current: unknown = obj;
+
+  for (const part of parts) {
+    if (current === null || current === undefined) return undefined;
+    if (typeof current !== 'object') return undefined;
+    current = (current as Record<string, unknown>)[part];
+  }
+
+  return current;
+}
+
+/**
+ * Evaluate an edge condition against execution context
+ */
+export function evaluateEdgeCondition(
+  condition: EdgeCondition | undefined,
+  context: Record<string, unknown>
+): boolean {
+  // No condition = unconditional edge (always true)
+  if (!condition) return true;
+
+  const value = getPathValue(context, condition.path);
+
+  switch (condition.type) {
+    case 'equals':
+      return value === condition.value;
+    case 'exists':
+      return value !== undefined && value !== null;
+    case 'truthy':
+      return Boolean(value);
+    default:
+      return false;
+  }
+}
+
+/**
+ * Determine effective gateRequired for a workflow node
+ * Precedence: node explicit > phase default > graph defaults > global default
+ */
+export function getEffectiveGateRequired(
+  node: WorkflowNode,
+  graphDefaults?: WorkflowGraph['defaults']
+): boolean {
+  // 1. Explicit node override
+  if (node.gateRequired !== undefined) {
+    return node.gateRequired;
+  }
+
+  // 2. Phase-based default (impl, test, review require gates)
+  const gatePhases: TaskPhase[] = ['impl', 'test', 'review'];
+  if (node.phase && gatePhases.includes(node.phase)) {
+    return true;
+  }
+
+  // 3. Graph-level defaults
+  if (graphDefaults?.gateRequired !== undefined) {
+    return graphDefaults.gateRequired;
+  }
+
+  // 4. Global default (false for analysis/plan, true otherwise)
+  return false;
+}
+
+// ═══════════════════════════════════════════════════════════════
 //                      TASK GRAPH SERVICE
 // ═══════════════════════════════════════════════════════════════
 

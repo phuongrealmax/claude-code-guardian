@@ -32,6 +32,24 @@ export { TaskGraphService } from './task-graph.js';
 export type { TaskGraph, TaskNode, GraphAnalysis, CreateGraphParams } from './task-graph.js';
 export { createTaskGraphTools, TASK_GRAPH_TOOL_DEFINITIONS } from './task-graph.tools.js';
 
+// Sprint 7: Workflow Graph exports
+export type {
+  WorkflowGraph,
+  WorkflowNode,
+  WorkflowEdge,
+  WorkflowNodeKind,
+  WorkflowNodeState,
+  WorkflowNodeResult,
+  WorkflowExecutionSummary,
+  EdgeCondition,
+} from './task-graph.js';
+export {
+  evaluateEdgeCondition,
+  getEffectiveGateRequired,
+  getPathValue,
+} from './task-graph.js';
+export { WorkflowExecutor } from './workflow-executor.js';
+
 // Default configuration
 export const DEFAULT_AUTO_AGENT_CONFIG: AutoAgentModuleConfig = {
   enabled: true,

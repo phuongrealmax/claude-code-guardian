@@ -82,9 +82,12 @@ export type CCGEventType =
   | 'taskgraph:node:started'
   | 'taskgraph:node:completed'
   | 'taskgraph:node:failed'
+  | 'taskgraph:node:skipped' // Node skipped (decision branch not taken)
+  | 'taskgraph:node:blocked' // Node blocked by gates (Sprint 7)
   | 'taskgraph:node:gated' // Node completion blocked by gate policy
   | 'taskgraph:node:bypass_gates' // Audit: node completed with gates bypassed
   | 'taskgraph:completed'
+  | 'taskgraph:workflow:completed' // Workflow execution finished (Sprint 7)
   // RAG events
   | 'rag:index:started'
   | 'rag:index:progress'
