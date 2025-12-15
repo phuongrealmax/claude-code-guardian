@@ -22,7 +22,7 @@ export default function Home() {
       <section ref={heroRef} className="hero scroll-fade-in">
         <div className="container">
           <span className="badge">
-            v4.0.0 — MIT Open-Core
+            v4.0.1 — MIT Open-Core
           </span>
           <h1>Turn Claude Code into a refactor engine for your biggest repos.</h1>
           <p>
@@ -496,7 +496,7 @@ export default function Home() {
             That's it. Local report generated in <code>docs/reports/</code> (gitignored).
           </p>
           <div style={{marginTop: '32px'}}>
-            <a href="https://github.com/phuongrealmax/claude-code-guardian/tree/v4.0.0" className="btn btn-primary" target="_blank" rel="noopener noreferrer">
+            <a href="https://github.com/phuongrealmax/claude-code-guardian/tree/v4.0.1" className="btn btn-primary" target="_blank" rel="noopener noreferrer">
               View on GitHub
             </a>
             {' '}

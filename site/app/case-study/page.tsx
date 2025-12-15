@@ -379,7 +379,7 @@ export default function CaseStudy() {
           <div style={{marginTop: '32px'}}>
             <a href="/" className="btn btn-primary">Back to Home</a>
             {' '}
-            <a href="https://github.com/phuongrealmax/claude-code-guardian/tree/v4.0.0" className="btn btn-secondary" target="_blank" rel="noopener noreferrer">
+            <a href="https://github.com/phuongrealmax/claude-code-guardian/tree/v4.0.1" className="btn btn-secondary" target="_blank" rel="noopener noreferrer">
               View on GitHub
             </a>
           </div>

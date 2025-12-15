@@ -65,10 +65,10 @@ export default function Footer() {
           <div>
             <h4 style={{marginBottom: '16px', fontSize: '0.875rem', fontWeight: 600, color: 'var(--primary)'}}>Resources</h4>
             <div style={{display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.875rem'}}>
-              <a href="https://github.com/phuongrealmax/claude-code-guardian/blob/v4.0.0/docs/USER_GUIDE.md" target="_blank" rel="noopener noreferrer">User Guide</a>
-              <a href="https://github.com/phuongrealmax/claude-code-guardian/blob/v4.0.0/docs/QUICKSTART.md" target="_blank" rel="noopener noreferrer">Quickstart</a>
-              <a href="https://github.com/phuongrealmax/claude-code-guardian/blob/v4.0.0/docs/PUBLIC_RELEASE.md" target="_blank" rel="noopener noreferrer">Public Release</a>
-              <a href="https://github.com/phuongrealmax/claude-code-guardian/blob/v4.0.0/CHANGELOG.md" target="_blank" rel="noopener noreferrer">Changelog</a>
+              <a href="https://github.com/phuongrealmax/claude-code-guardian/blob/v4.0.1/docs/USER_GUIDE.md" target="_blank" rel="noopener noreferrer">User Guide</a>
+              <a href="https://github.com/phuongrealmax/claude-code-guardian/blob/v4.0.1/docs/QUICKSTART.md" target="_blank" rel="noopener noreferrer">Quickstart</a>
+              <a href="https://github.com/phuongrealmax/claude-code-guardian/blob/v4.0.1/docs/PUBLIC_RELEASE.md" target="_blank" rel="noopener noreferrer">Public Release</a>
+              <a href="https://github.com/phuongrealmax/claude-code-guardian/blob/v4.0.1/CHANGELOG.md" target="_blank" rel="noopener noreferrer">Changelog</a>
               <Link href="/partners">Partner Program</Link>
             </div>
           </div>
