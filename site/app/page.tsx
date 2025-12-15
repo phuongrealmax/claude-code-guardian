@@ -496,7 +496,7 @@ export default function Home() {
             That's it. Local report generated in <code>docs/reports/</code> (gitignored).
           </p>
           <div style={{marginTop: '32px'}}>
-            <a href="https://github.com/phuongrealmax/claude-code-guardian/tree/public/open-core-release" className="btn btn-primary" target="_blank" rel="noopener noreferrer">
+            <a href="https://github.com/phuongrealmax/claude-code-guardian/tree/v4.0.0" className="btn btn-primary" target="_blank" rel="noopener noreferrer">
               View on GitHub
             </a>
             {' '}
