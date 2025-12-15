@@ -66,7 +66,11 @@ For detailed usage, see the individual guide documents linked below.
 | `auto_run_graph` | Run Graph |
 | `auto_start_node` | Start Node |
 | `auto_store_error` | Store Error |
+| `auto_workflow_execute` | Workflow Execute |
+| `auto_workflow_mermaid` | Workflow Mermaid |
 | `auto_workflow_start` | Workflow Start |
+| `auto_workflow_template_get` | Workflow Template Get |
+| `auto_workflow_template_list` | Workflow Template List |
 
 ## Code Optimizer Tools
 
@@ -167,6 +171,10 @@ For detailed usage, see the individual guide documents linked below.
 | `onboarding_status` | Status |
 | `onboarding_validate` | Validate |
 | `onboarding_welcome` | Welcome |
+| `progress_blockers` | Blockers |
+| `progress_clear` | Clear |
+| `progress_mermaid` | Mermaid |
+| `progress_status` | Status |
 | `stride_analyze` | Analyze |
 | `stride_analyze_files` | Analyze Files |
 | `stride_categories` | Categories |
