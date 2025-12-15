@@ -458,3 +458,192 @@ describe('CCGRunService Error Handling', () => {
     expect(fs.existsSync(result.reportPath!)).toBe(true);
   });
 });
+
+// ═══════════════════════════════════════════════════════════════
+//                      TEMPLATE TESTS
+// ═══════════════════════════════════════════════════════════════
+
+describe('/ccg Template', () => {
+  it('should have template file that exists', () => {
+    const templatePath = path.join(process.cwd(), 'templates', 'commands', 'ccg-entrypoint.md');
+    expect(fs.existsSync(templatePath)).toBe(true);
+  });
+
+  it('should contain mcp__claude-code-guardian__ccg_run in template', () => {
+    const templatePath = path.join(process.cwd(), 'templates', 'commands', 'ccg-entrypoint.md');
+    const content = fs.readFileSync(templatePath, 'utf-8');
+    expect(content).toContain('mcp__claude-code-guardian__ccg_run');
+  });
+
+  it('should contain ALWAYS call tool first instruction', () => {
+    const templatePath = path.join(process.cwd(), 'templates', 'commands', 'ccg-entrypoint.md');
+    const content = fs.readFileSync(templatePath, 'utf-8');
+    expect(content).toContain('ALWAYS');
+    expect(content).toContain('tool first');
+  });
+
+  it('should contain fallback conditions for unsupported prompts', () => {
+    const templatePath = path.join(process.cwd(), 'templates', 'commands', 'ccg-entrypoint.md');
+    const content = fs.readFileSync(templatePath, 'utf-8');
+    expect(content).toContain('supported === false');
+    expect(content).toContain('NO_MATCHING_PATTERN');
+    expect(content).toContain('stepsTotal === 0');
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════
+//                      NO-MATCH / FALLBACK TESTS
+// ═══════════════════════════════════════════════════════════════
+
+describe('CCGRunService No-Match Fallback', () => {
+  it('should return supported=false for unknown prompts', async () => {
+    const modules = createMockModules();
+    const service = new CCGRunService({
+      modules: modules as any,
+      stateManager,
+      logger,
+      projectRoot: tempDir,
+    });
+
+    const result = await service.run({
+      prompt: 'cài MCP global',
+      dryRun: true,
+    });
+
+    expect(result.supported).toBe(false);
+  });
+
+  it('should return reason=NO_MATCHING_PATTERN for unknown prompts', async () => {
+    const modules = createMockModules();
+    const service = new CCGRunService({
+      modules: modules as any,
+      stateManager,
+      logger,
+      projectRoot: tempDir,
+    });
+
+    const result = await service.run({
+      prompt: 'setup something global config',
+      dryRun: true,
+    });
+
+    expect(result.reason).toBe('NO_MATCHING_PATTERN');
+  });
+
+  it('should return low confidence for unknown prompts (fallback scenario)', async () => {
+    const modules = createMockModules();
+    const service = new CCGRunService({
+      modules: modules as any,
+      stateManager,
+      logger,
+      projectRoot: tempDir,
+    });
+
+    const result = await service.run({
+      prompt: 'xyz unknown command abc',
+      dryRun: true,
+    });
+
+    // Fallback gives 1 step with confidence 0.3 (below threshold of 0.5)
+    // This is treated as no-match
+    expect(result.confidence).toBeLessThan(0.5);
+    expect(result.supported).toBe(false);
+  });
+
+  it('should NOT throw for unknown prompts', async () => {
+    const modules = createMockModules();
+    const service = new CCGRunService({
+      modules: modules as any,
+      stateManager,
+      logger,
+      projectRoot: tempDir,
+    });
+
+    // Should not throw
+    const result = await service.run({
+      prompt: 'random gibberish command',
+      dryRun: true,
+    });
+
+    expect(result).toBeDefined();
+    expect(result.taskId).toBeTruthy();
+  });
+
+  it('should include fallbackGuidance for unknown prompts', async () => {
+    const modules = createMockModules();
+    const service = new CCGRunService({
+      modules: modules as any,
+      stateManager,
+      logger,
+      projectRoot: tempDir,
+    });
+
+    const result = await service.run({
+      prompt: 'something not matching any pattern',
+      dryRun: true,
+    });
+
+    expect(result.fallbackGuidance).toBeDefined();
+    expect(result.fallbackGuidance?.summary).toBeTruthy();
+    expect(result.fallbackGuidance?.suggestedNext).toBeDefined();
+    expect(result.fallbackGuidance?.examples).toBeDefined();
+    expect(result.fallbackGuidance?.examples.length).toBeGreaterThan(0);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════
+//                      IN-SCOPE / SUPPORTED TESTS
+// ═══════════════════════════════════════════════════════════════
+
+describe('CCGRunService In-Scope Prompts', () => {
+  it('should return supported=true for known prompts', async () => {
+    const modules = createMockModules();
+    const service = new CCGRunService({
+      modules: modules as any,
+      stateManager,
+      logger,
+      projectRoot: tempDir,
+    });
+
+    const result = await service.run({
+      prompt: 'analyze code',
+      dryRun: true,
+    });
+
+    expect(result.supported).toBe(true);
+  });
+
+  it('should return execution.stepsTotal > 0 for known prompts', async () => {
+    const modules = createMockModules();
+    const service = new CCGRunService({
+      modules: modules as any,
+      stateManager,
+      logger,
+      projectRoot: tempDir,
+    });
+
+    const result = await service.run({
+      prompt: 'run tests',
+      dryRun: true,
+    });
+
+    expect(result.execution.stepsTotal).toBeGreaterThan(0);
+  });
+
+  it('should NOT include fallbackGuidance for known prompts', async () => {
+    const modules = createMockModules();
+    const service = new CCGRunService({
+      modules: modules as any,
+      stateManager,
+      logger,
+      projectRoot: tempDir,
+    });
+
+    const result = await service.run({
+      prompt: 'check memory',
+      dryRun: true,
+    });
+
+    expect(result.fallbackGuidance).toBeUndefined();
+  });
+});

@@ -11,9 +11,17 @@ export interface CCGRunInput {
   reportDir?: string;
 }
 
+export interface FallbackGuidance {
+  summary: string;
+  suggestedNext: string[];
+  examples: string[];
+}
+
 export interface CCGRunOutput {
   taskId: string;
   taskStatus: 'completed' | 'pending' | 'blocked' | 'failed';
+  supported: boolean;
+  reason?: 'NO_MATCHING_PATTERN' | string;
   confidence: number;
   translationSource: 'pattern' | 'claude' | 'tiny';
   validation: ValidationResult;
@@ -21,6 +29,7 @@ export interface CCGRunOutput {
   reportPath?: string;
   nextToolCalls?: NextToolCall[];
   error?: string;
+  fallbackGuidance?: FallbackGuidance;
 }
 
 export interface ValidationResult {

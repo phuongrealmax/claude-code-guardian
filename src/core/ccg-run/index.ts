@@ -25,6 +25,7 @@ import {
   ValidationResult,
   ExecutionResult,
   NextToolCall,
+  FallbackGuidance,
 } from './types.js';
 import { translatePrompt, translateWithTinyPlanner } from './prompt-translator.js';
 import { buildInternalHandlers, getHandler, getAvailableTools } from './handlers.js';
@@ -90,6 +91,7 @@ export class CCGRunService {
     const output: CCGRunOutput = {
       taskId,
       taskStatus: 'pending',
+      supported: true,
       confidence: 0,
       translationSource: 'pattern',
       validation: {
@@ -120,24 +122,51 @@ export class CCGRunService {
       // Validate translation
       output.validation = this.validateSpec(spec);
 
-      // Step C: Execute if not dry run and validation passed
-      if (!input.dryRun && output.validation.passed) {
+      // Check for no-match case:
+      // - No steps at all, OR
+      // - has_steps validation check failed, OR
+      // - confidence below threshold (0.5) - indicates fallback/no-pattern match
+      const hasStepsCheckPassed = output.validation.checks.find(c => c.check === 'has_steps')?.passed ?? false;
+      const confidenceCheckPassed = output.validation.checks.find(c => c.check === 'confidence_threshold')?.passed ?? false;
+      const isNoMatch = spec.steps.length === 0 || !hasStepsCheckPassed || !confidenceCheckPassed;
+
+      if (isNoMatch) {
+        // No matching pattern - return structured fallback guidance
+        output.supported = false;
+        output.reason = 'NO_MATCHING_PATTERN';
+        output.taskStatus = 'blocked';
+        output.fallbackGuidance = this.buildFallbackGuidance();
+
+        // Update workflow task to blocked (not complete)
+        if (workflowTaskId) {
+          await this.updateWorkflowTaskBlocked(workflowTaskId, 'NO_MATCHING_PATTERN');
+        }
+      } else if (!input.dryRun && output.validation.passed) {
+        // Step C: Execute if not dry run and validation passed
         const execResult = await this.executeSteps(spec, output);
         output.execution = execResult;
         output.taskStatus = execResult.stepsFailed > 0 ? 'failed' : 'completed';
+
+        // Step D: Complete workflow task
+        if (workflowTaskId) {
+          await this.completeWorkflowTask(workflowTaskId, output.taskStatus === 'completed');
+        }
       } else if (input.dryRun && output.validation.passed) {
         // Dry run with passing validation - show pending with next tool calls
         output.taskStatus = 'pending';
         output.nextToolCalls = this.buildNextToolCalls(spec);
+
+        if (workflowTaskId) {
+          await this.completeWorkflowTask(workflowTaskId, false);
+        }
       } else {
         // Validation failed (dryRun or not) - blocked
         output.taskStatus = 'blocked';
         output.nextToolCalls = this.buildNextToolCalls(spec);
-      }
 
-      // Step D: Complete workflow task
-      if (workflowTaskId) {
-        await this.completeWorkflowTask(workflowTaskId, output.taskStatus === 'completed');
+        if (workflowTaskId) {
+          await this.completeWorkflowTask(workflowTaskId, false);
+        }
       }
     } catch (error) {
       output.taskStatus = 'failed';
@@ -212,6 +241,18 @@ export class CCGRunService {
       await handler({ taskId, reason });
     } catch (error) {
       this.logger.warn(`Failed to fail workflow task: ${error}`);
+    }
+  }
+
+  private async updateWorkflowTaskBlocked(taskId: string, reason: string): Promise<void> {
+    try {
+      const handler = getHandler(this.handlers, 'workflow_task_update');
+      await handler({ taskId, status: 'blocked' });
+      // Add note explaining why blocked
+      const noteHandler = getHandler(this.handlers, 'workflow_task_note');
+      await noteHandler({ taskId, content: `Blocked: ${reason}`, type: 'blocker' });
+    } catch (error) {
+      this.logger.warn(`Failed to update workflow task as blocked: ${error}`);
     }
   }
 
@@ -354,6 +395,21 @@ export class CCGRunService {
       args: step.args,
       reason: `Translated from prompt with confidence ${spec.confidence}`,
     }));
+  }
+
+  private buildFallbackGuidance(): FallbackGuidance {
+    return {
+      summary: 'This looks like a setup/config request outside current task patterns.',
+      suggestedNext: [
+        'If you intended a CCG task, rephrase as an action on repo/code/tests/guards.',
+        'If you intended MCP/global setup, follow the setup doc or configure outside CCG-runner.',
+      ],
+      examples: [
+        '/ccg "run guard_validate for frontend"',
+        '/ccg "run testing_run scope=affected"',
+        '/ccg "analyze repo and propose fix plan"',
+      ],
+    };
   }
 
   private async persistReport(
