@@ -105,7 +105,9 @@ export type CCGEventType =
   | 'proofpack:created'
   | 'proofpack:verified'
   | 'proofpack:failed'
-  | 'proofpack:uploaded';
+  | 'proofpack:uploaded'
+  // Policy Pack events
+  | 'policy:loaded';
 
 export interface CCGEvent<T = unknown> {
   type: CCGEventType;

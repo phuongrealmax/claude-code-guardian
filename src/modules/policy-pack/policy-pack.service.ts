@@ -251,9 +251,9 @@ export class PolicyPackService implements IPolicyProvider {
     return {
       ...DEFAULT_POLICY_RULES,
       ...policy.rules,
-      tdi: { ...DEFAULT_POLICY_RULES.tdi, ...policy.rules.tdi },
-      coverage: { ...DEFAULT_POLICY_RULES.coverage, ...policy.rules.coverage },
-      complexity: { ...DEFAULT_POLICY_RULES.complexity, ...policy.rules.complexity },
+      tdi: { ...DEFAULT_POLICY_RULES.tdi!, ...(policy.rules.tdi ?? {}) },
+      coverage: { ...DEFAULT_POLICY_RULES.coverage!, ...(policy.rules.coverage ?? {}) },
+      complexity: { ...DEFAULT_POLICY_RULES.complexity!, ...(policy.rules.complexity ?? {}) },
     };
   }
 
@@ -398,13 +398,17 @@ export class PolicyPackService implements IPolicyProvider {
   ): void {
     if (!this.eventBus) return;
 
-    const event: PolicyLoadedEvent = {
+    const eventData: PolicyLoadedEvent = {
       policy,
       source,
       repository,
     };
 
-    this.eventBus.emit('policy:loaded', event);
+    this.eventBus.emit({
+      type: 'policy:loaded',
+      timestamp: new Date(),
+      data: eventData,
+    });
   }
 }
 
