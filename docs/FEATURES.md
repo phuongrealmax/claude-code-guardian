@@ -16,27 +16,41 @@ Code Guardian Studio (CCG) is the most comprehensive MCP server for Claude Code,
 
 ---
 
+## Pricing Tiers
+
+CCG features are available across three tiers:
+
+| Tier | Price | Description |
+|------|-------|-------------|
+| 🆓 **Dev** | Free | Core features for individual developers |
+| 💎 **Team** | $19/mo | Advanced features for professional teams |
+| 🏢 **Enterprise** | Custom | SSO, audit logs, dedicated support |
+
+See [Pricing](https://codeguardian.studio/pricing) for details.
+
+---
+
 ## Module Overview
 
-| Module | Tools | Purpose |
-|--------|-------|---------|
-| [CCG Entrypoint](#ccg-entrypoint) | 1 | Natural language command interface |
-| [Session](#session-management) | 10 | Session lifecycle, export, resume |
-| [Memory](#memory-system) | 5 | Persistent knowledge storage |
-| [Workflow](#workflow-management) | 12 | Task tracking and management |
-| [Guard](#guard-module) | 5 | Code validation rules |
-| [Code Optimizer](#code-optimizer) | 8 | Metrics, hotspots, refactoring |
-| [Testing](#testing-module) | 11 | Test runner, browser testing |
-| [Latent Chain](#latent-chain) | 16 | Multi-phase reasoning |
-| [AutoAgent](#autoagent) | 20 | Task decomposition, error fixing |
-| [Agents](#agents-module) | 7 | Multi-agent coordination |
-| [Documents](#documents-module) | 9 | Documentation management |
-| [Process](#process-management) | 8 | Process and port control |
-| [Resource](#resource-management) | 10 | Token budgeting, checkpoints |
-| [Progress](#progress-dashboard) | 4 | Real-time workflow visualization |
-| [RAG](#rag-module) | 6 | Semantic code search |
-| [Thinking](#thinking-module) | 10 | Reasoning models and workflows |
-| [Profile](#profile-module) | 8 | Context profiles |
+| Module | Tools | Tier | Purpose |
+|--------|-------|------|---------|
+| [CCG Entrypoint](#ccg-entrypoint) | 1 | 🆓 | Natural language command interface |
+| [Session](#session-management) | 10 | 🆓 | Session lifecycle, export, resume |
+| [Memory](#memory-system) | 5 | 🆓 | Persistent knowledge storage |
+| [Workflow](#workflow-management) | 12 | 🆓 | Task tracking and management |
+| [Guard](#guard-module) | 5 | 🆓 | Code validation rules |
+| [Code Optimizer](#code-optimizer) | 8 | 🆓 | Metrics, hotspots, refactoring |
+| [Process](#process-management) | 8 | 🆓 | Process and port control |
+| [Resource](#resource-management) | 10 | 🆓 | Token budgeting, checkpoints |
+| [Progress](#progress-dashboard) | 4 | 🆓 | Real-time workflow visualization |
+| [Profile](#profile-module) | 8 | 🆓 | Context profiles |
+| [Latent Chain](#latent-chain) | 16 | 💎 | Multi-phase reasoning |
+| [AutoAgent](#autoagent) | 20 | 💎 | Task decomposition, error fixing |
+| [Thinking](#thinking-module) | 10 | 💎 | Reasoning models and workflows |
+| [RAG](#rag-module) | 6 | 💎 | Semantic code search |
+| [Agents](#agents-module) | 7 | 💎 | Multi-agent coordination |
+| [Testing](#testing-module) | 11 | 💎 | Test runner, browser testing |
+| [Documents](#documents-module) | 9 | 💎 | Documentation management |
 
 ---
 
@@ -341,7 +355,9 @@ code_generate_report({
 
 ---
 
-## Testing Module
+## Testing Module 💎
+
+> **Requires Team tier** - [Upgrade](https://codeguardian.studio/pricing)
 
 Run tests and perform browser testing with Playwright.
 
@@ -402,7 +418,9 @@ testing_browser_close({ sessionId: session.id })
 
 ---
 
-## Latent Chain
+## Latent Chain 💎
+
+> **Requires Team tier** - [Upgrade](https://codeguardian.studio/pricing)
 
 Multi-phase reasoning for complex tasks with context persistence.
 
@@ -493,7 +511,9 @@ latent_complete_task({
 
 ---
 
-## AutoAgent
+## AutoAgent 💎
+
+> **Requires Team tier** - [Upgrade](https://codeguardian.studio/pricing)
 
 Automatic task decomposition and error fixing.
 
@@ -551,7 +571,9 @@ auto_fix_loop({
 
 ---
 
-## Agents Module
+## Agents Module 💎
+
+> **Requires Team tier** - [Upgrade](https://codeguardian.studio/pricing)
 
 Coordinate specialized agents for domain-specific tasks.
 
@@ -595,7 +617,9 @@ agents_coordinate({
 
 ---
 
-## Documents Module
+## Documents Module 💎
+
+> **Requires Team tier** - [Upgrade](https://codeguardian.studio/pricing)
 
 Manage project documentation.
 
@@ -717,7 +741,9 @@ progress_mermaid({
 
 ---
 
-## RAG Module
+## RAG Module 💎
+
+> **Requires Team tier** - [Upgrade](https://codeguardian.studio/pricing)
 
 Semantic code search using embeddings.
 
@@ -734,7 +760,9 @@ Semantic code search using embeddings.
 
 ---
 
-## Thinking Module
+## Thinking Module 💎
+
+> **Requires Team tier** - [Upgrade](https://codeguardian.studio/pricing)
 
 Structured reasoning models and workflows.
 
@@ -842,4 +870,4 @@ testing_run -> guard_validate -> workflow_task_complete
 
 ---
 
-*Last updated: 2025-12-18*
+*Last updated: 2025-12-23*

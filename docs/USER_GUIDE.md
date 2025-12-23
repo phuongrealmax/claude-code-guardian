@@ -104,9 +104,13 @@ The Team tier unlocks advanced analysis and reporting features.
 - Before/After comparisons
 - Trend charts and history
 - ROI analysis
-- Latent Chain Mode
-- Multi-Agent coordination
-- Thinking models
+- **Latent Chain Mode** - Multi-phase reasoning
+- **AutoAgent** - Task decomposition & error fixing
+- **Thinking Models** - Structured reasoning workflows
+- **RAG Module** - Semantic code search
+- **Agents Module** - Multi-agent coordination
+- **Testing Module** - Advanced test runner & browser testing
+- **Documents Module** - Documentation management
 - Priority support
 
 **Setup:**
