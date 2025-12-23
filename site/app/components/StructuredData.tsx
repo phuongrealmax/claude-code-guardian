@@ -31,17 +31,21 @@ export function SoftwareApplicationSchema() {
       bestRating: '5',
       worstRating: '1',
     },
-    description: 'AI-powered code refactor engine for large repositories. Scan repos, find hotspots, track Tech Debt Index. Built on Claude Code + MCP.',
+    description: 'AI safety & control layer for Claude, Cursor, and AI coding agents. 113+ MCP tools to prevent AI from breaking your codebase. Scan repos, find hotspots, track Tech Debt Index.',
     url: 'https://codeguardian.studio',
     downloadUrl: 'https://www.npmjs.com/package/codeguardian-studio',
-    softwareVersion: '4.0.0',
-    releaseNotes: 'Open-core architecture with MIT license. Dev tier runs 100% offline.',
+    softwareVersion: '4.1.0',
+    releaseNotes: 'v4.1.0: Proof Pack tamper-evident validation, TDI Gates, 113+ MCP tools. MIT open-core.',
     screenshot: 'https://codeguardian.studio/og-image.png',
     featureList: [
+      '113+ MCP Tools',
+      'AI Safety & Control Layer',
+      'Proof Pack (SHA-256 validation)',
+      'TDI Budget Gates',
       'Code hotspot detection',
       'Tech Debt Index tracking',
       'Complexity analysis',
-      'Markdown reports',
+      'Latent Chain reasoning',
       'Claude Code MCP integration',
       '100% offline operation',
     ],
@@ -87,6 +91,22 @@ export function FAQSchema() {
     '@context': 'https://schema.org',
     '@type': 'FAQPage',
     mainEntity: [
+      {
+        '@type': 'Question',
+        name: 'How does CCG protect my code from AI agents?',
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: 'CCG acts as a safety layer between AI agents (Claude, Cursor, etc.) and your repository. It blocks dangerous actions like mass deletions, breaking API changes, and architectural violations. Every AI action goes through safety checks before execution.',
+        },
+      },
+      {
+        '@type': 'Question',
+        name: 'What are MCP tools and how many does CCG have?',
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: 'MCP (Model Context Protocol) tools are functions that AI agents can call. CCG provides 113+ specialized tools for code analysis, workflow management, memory, testing, and safety validation - the most comprehensive MCP toolset available.',
+        },
+      },
       {
         '@type': 'Question',
         name: 'Why not just use SonarQube + Claude?',
