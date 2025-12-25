@@ -68,7 +68,7 @@ export function OrganizationSchema() {
     logo: 'https://codeguardian.studio/logo.png',
     description: 'AI-powered code quality tools for developers',
     sameAs: [
-      'https://github.com/phuongrealmax/claude-code-guardian',
+      'https://github.com/phuongrealmax/code-guardian',
       'https://www.npmjs.com/package/codeguardian-studio',
     ],
     contactPoint: {

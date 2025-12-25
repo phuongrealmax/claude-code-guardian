@@ -48,7 +48,7 @@ npm install -g codeguardian-studio
 
 Or if using a local development version:
 ```bash
-cd /path/to/claude-code-guardian
+cd /path/to/code-guardian
 npm run build
 npm link
 ```

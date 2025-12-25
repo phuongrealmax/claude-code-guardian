@@ -210,8 +210,8 @@ async function initializeProject(cwd: string, findTemplateDir: () => string): Pr
     mcpConfig.mcpServers = {};
   }
 
-  if (!mcpConfig.mcpServers['claude-code-guardian']) {
-    mcpConfig.mcpServers['claude-code-guardian'] = {
+  if (!mcpConfig.mcpServers['code-guardian']) {
+    mcpConfig.mcpServers['code-guardian'] = {
       command: 'node',
       args: [join(cwd, 'node_modules', 'codeguardian-studio', 'dist', 'index.js')],
     };

@@ -14,7 +14,7 @@
 **Sub-sub**: Dev tier runs fully offline. No license required.
 
 **Primary CTA**: Install via npm → #get-started
-**Secondary CTA**: View GitHub Repo → https://github.com/phuongrealmax/claude-code-guardian
+**Secondary CTA**: View GitHub Repo → https://github.com/phuongrealmax/code-guardian
 
 **Trust Badges**:
 - Built on Claude

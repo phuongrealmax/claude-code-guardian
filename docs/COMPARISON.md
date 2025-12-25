@@ -243,6 +243,6 @@ See [Quickstart Guide](QUICKSTART.md) for detailed setup instructions.
 
 ## Questions?
 
-- [GitHub Issues](https://github.com/phuongrealmax/claude-code-guardian/issues)
+- [GitHub Issues](https://github.com/phuongrealmax/code-guardian/issues)
 - [Documentation](https://codeguardian.studio/docs)
 - [User Guide](USER_GUIDE.md)

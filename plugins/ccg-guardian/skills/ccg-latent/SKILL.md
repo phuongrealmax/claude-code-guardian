@@ -2,9 +2,9 @@
 name: ccg-latent
 description: "Use this skill for multi-step development tasks. Latent Chain Mode reduces token usage by 70-80% through hidden-state reasoning with 4-phase workflow: analysis → plan → impl → review."
 allowed-tools:
-  - mcp__claude-code-guardian__latent_*
-  - mcp__claude-code-guardian__guard_validate
-  - mcp__claude-code-guardian__testing_run
+  - mcp__code-guardian__latent_*
+  - mcp__code-guardian__guard_validate
+  - mcp__code-guardian__testing_run
 ---
 
 # CCG Latent Chain Mode

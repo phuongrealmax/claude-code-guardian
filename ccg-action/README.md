@@ -149,7 +149,7 @@ When enabled, the action posts a comment like this:
 
 ## Related
 
-- [Claude Code Guardian](https://github.com/codeguardian/claude-code-guardian) - Main repository
+- [Claude Code Guardian](https://github.com/codeguardian/code-guardian) - Main repository
 - [Documentation](https://codeguardian.studio/docs) - Full documentation
 - [VSCode Extension](https://marketplace.visualstudio.com/items?itemName=codeguardian.ccg-vscode) - IDE integration
 

@@ -1631,7 +1631,7 @@ For complete tool schemas, see individual guide documents or use Claude Code's M
 - **Advanced features?** See [LATENT_CHAIN_GUIDE.md](LATENT_CHAIN_GUIDE.md)
 - **Session recovery?** See [SESSION_RESUME.md](SESSION_RESUME.md)
 - **Gate requirements?** See [COMPLETION_GATES.md](COMPLETION_GATES.md)
-- **GitHub Issues:** https://github.com/phuongrealmax/claude-code-guardian/issues
+- **GitHub Issues:** https://github.com/phuongrealmax/code-guardian/issues
 - **Website:** https://codeguardian.studio
 
 ---

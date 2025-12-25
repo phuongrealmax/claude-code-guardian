@@ -31,7 +31,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: anthropics/claude-code-guardian@v1
+      - uses: anthropics/code-guardian@v1
         with:
           threshold: 70
           fail-on-budget-exceeded: true
@@ -81,7 +81,7 @@ The action will fail if any folder exceeds its budget.
 ### Basic with Proof Pack
 
 ```yaml
-- uses: anthropics/claude-code-guardian@v1
+- uses: anthropics/code-guardian@v1
   id: ccg
 
 - name: Show Proof Pack
@@ -93,7 +93,7 @@ The action will fail if any folder exceeds its budget.
 ### Strict TDI Enforcement
 
 ```yaml
-- uses: anthropics/claude-code-guardian@v1
+- uses: anthropics/code-guardian@v1
   with:
     threshold: 50
     fail-on-budget-exceeded: true
@@ -102,7 +102,7 @@ The action will fail if any folder exceeds its budget.
 ### Analysis Only (No Gate)
 
 ```yaml
-- uses: anthropics/claude-code-guardian@v1
+- uses: anthropics/code-guardian@v1
   with:
     fail-on-budget-exceeded: false
     generate-proof-pack: false
@@ -111,7 +111,7 @@ The action will fail if any folder exceeds its budget.
 ### Custom Working Directory
 
 ```yaml
-- uses: anthropics/claude-code-guardian@v1
+- uses: anthropics/code-guardian@v1
   with:
     working-directory: ./packages/core
     config-path: ./packages/core/.ccg
@@ -170,7 +170,7 @@ Output:
 Access action outputs in subsequent steps:
 
 ```yaml
-- uses: anthropics/claude-code-guardian@v1
+- uses: anthropics/code-guardian@v1
   id: ccg
 
 - name: Check Results
@@ -191,7 +191,7 @@ Access action outputs in subsequent steps:
 Proof Packs are uploaded as GitHub Artifacts with 90-day retention:
 
 ```yaml
-- uses: anthropics/claude-code-guardian@v1
+- uses: anthropics/code-guardian@v1
 
 # Proof Pack available at:
 # Actions > Run > Artifacts > ccg-proof-pack
@@ -210,7 +210,7 @@ gh run download <run-id> -n ccg-proof-pack -D ./proofpacks
 Large repositories may exceed the default timeout:
 
 ```yaml
-- uses: anthropics/claude-code-guardian@v1
+- uses: anthropics/code-guardian@v1
   timeout-minutes: 10
 ```
 

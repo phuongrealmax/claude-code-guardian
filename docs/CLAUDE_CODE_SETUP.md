@@ -64,7 +64,7 @@ Edit `~/.config/claude/claude_desktop_config.json`:
 ```json
 {
   "mcpServers": {
-    "claude-code-guardian": {
+    "code-guardian": {
       "command": "npx",
       "args": ["-y", "codeguardian-studio"],
       "env": {
@@ -82,7 +82,7 @@ Edit `%APPDATA%\Claude\claude_desktop_config.json`:
 ```json
 {
   "mcpServers": {
-    "claude-code-guardian": {
+    "code-guardian": {
       "command": "npx",
       "args": ["-y", "codeguardian-studio"],
       "env": {
@@ -291,7 +291,7 @@ For large repositories (>50k LOC):
 
 - Check [User Guide](USER_GUIDE.md) for CLI details
 - Run `ccg doctor` to diagnose configuration issues
-- Open issues at [GitHub](https://github.com/phuongrealmax/claude-code-guardian/issues)
+- Open issues at [GitHub](https://github.com/phuongrealmax/code-guardian/issues)
 
 ---
 

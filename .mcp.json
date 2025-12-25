@@ -1,6 +1,6 @@
 {
   "mcpServers": {
-    "claude-code-guardian": {
+    "code-guardian": {
       "command": "node",
       "args": ["dist/index.js"],
       "env": {}

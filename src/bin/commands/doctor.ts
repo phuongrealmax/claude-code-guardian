@@ -126,11 +126,11 @@ function checkMcpFile(cwd: string, issues: Issue[]): void {
 
   try {
     const mcp = JSON.parse(readFileSync(mcpPath, 'utf-8'));
-    if (!mcp.mcpServers?.['claude-code-guardian']) {
+    if (!mcp.mcpServers?.['code-guardian']) {
       issues.push({
         level: 'warning',
         message: 'CCG not registered in MCP servers',
-        fix: 'Add "claude-code-guardian" to .mcp.json mcpServers',
+        fix: 'Add "code-guardian" to .mcp.json mcpServers',
       });
     }
   } catch {

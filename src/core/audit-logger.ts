@@ -388,7 +388,7 @@ export class AuditLogger {
     const severity = entry.outcome === 'blocked' ? 4 : entry.outcome === 'failure' ? 3 : 6;
     const priority = facility * 8 + severity;
     const hostname = 'ccg-server';
-    const appname = 'claude-code-guardian';
+    const appname = 'code-guardian';
     const procid = process.pid;
     const msgid = entry.action;
     const structuredData = `[ccg@12345 seq="${entry.sequence}" hash="${entry.hash.slice(0, 16)}"]`;

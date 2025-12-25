@@ -59,13 +59,13 @@ ccg code-optimize --report
 ## Links
 
 - **Website**: [codeguardian.studio](https://codeguardian.studio)
-- **GitHub**: [claude-code-guardian](https://github.com/phuongrealmax/claude-code-guardian)
+- **GitHub**: [code-guardian](https://github.com/phuongrealmax/code-guardian)
 - **npm**: [codeguardian-studio](https://www.npmjs.com/package/codeguardian-studio)
-- **MCP Directory**: [mcp.so](https://mcp.so/server/claude-code-guardian)
+- **MCP Directory**: [mcp.so](https://mcp.so/server/code-guardian)
 
 ## Support
 
-- **Issues**: [GitHub Issues](https://github.com/phuongrealmax/claude-code-guardian/issues)
+- **Issues**: [GitHub Issues](https://github.com/phuongrealmax/code-guardian/issues)
 - **Email**: hello@codeguardian.studio
 - **Twitter**: [@codeguardianstudio](https://twitter.com/codeguardianstudio)
 

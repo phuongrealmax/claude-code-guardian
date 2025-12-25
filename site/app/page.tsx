@@ -99,7 +99,7 @@ export default function Home() {
               </svg>
               npm
             </a>
-            <a href="https://mcp.so/server/claude-code-guardian" target="_blank" rel="noopener noreferrer" style={{
+            <a href="https://mcp.so/server/code-guardian" target="_blank" rel="noopener noreferrer" style={{
               display: 'inline-flex',
               alignItems: 'center',
               gap: '6px',
@@ -119,7 +119,7 @@ export default function Home() {
               </svg>
               mcp.so
             </a>
-            <a href="https://github.com/phuongrealmax/claude-code-guardian" target="_blank" rel="noopener noreferrer" style={{
+            <a href="https://github.com/phuongrealmax/code-guardian" target="_blank" rel="noopener noreferrer" style={{
               display: 'inline-flex',
               alignItems: 'center',
               gap: '6px',
@@ -689,7 +689,7 @@ jobs:
             That's it. Local report generated in <code>docs/reports/</code> (gitignored).
           </p>
           <div style={{marginTop: '32px'}}>
-            <a href="https://github.com/phuongrealmax/claude-code-guardian" className="btn btn-primary" target="_blank" rel="noopener noreferrer">
+            <a href="https://github.com/phuongrealmax/code-guardian" className="btn btn-primary" target="_blank" rel="noopener noreferrer">
               View on GitHub
             </a>
             {' '}

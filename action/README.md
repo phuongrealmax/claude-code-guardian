@@ -31,7 +31,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: anthropics/claude-code-guardian@v1
+      - uses: anthropics/code-guardian@v1
         with:
           threshold: 70
 ```
@@ -39,7 +39,7 @@ jobs:
 ### With TDI Budget Enforcement
 
 ```yaml
-- uses: anthropics/claude-code-guardian@v1
+- uses: anthropics/code-guardian@v1
   with:
     threshold: 70
     fail-on-budget-exceeded: true
@@ -49,7 +49,7 @@ jobs:
 ### Using Outputs
 
 ```yaml
-- uses: anthropics/claude-code-guardian@v1
+- uses: anthropics/code-guardian@v1
   id: ccg
 
 - name: Check Results

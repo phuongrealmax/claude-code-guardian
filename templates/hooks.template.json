@@ -6,7 +6,7 @@
     "SessionStart": [
       {
         "type": "command",
-        "command": "npx @anthropic-community/claude-code-guardian hook session-start",
+        "command": "npx @anthropic-community/code-guardian hook session-start",
         "timeout": 10000,
         "onError": "warn"
       }
@@ -15,7 +15,7 @@
     "PreToolCall": [
       {
         "type": "command",
-        "command": "npx @anthropic-community/claude-code-guardian hook pre-tool \"$TOOL_NAME\"",
+        "command": "npx @anthropic-community/code-guardian hook pre-tool \"$TOOL_NAME\"",
         "timeout": 5000,
         "onError": "warn",
         "filter": {
@@ -36,7 +36,7 @@
     "PostToolCall": [
       {
         "type": "command",
-        "command": "npx @anthropic-community/claude-code-guardian hook post-tool \"$TOOL_NAME\"",
+        "command": "npx @anthropic-community/code-guardian hook post-tool \"$TOOL_NAME\"",
         "timeout": 30000,
         "onError": "warn",
         "filter": {
@@ -59,7 +59,7 @@
     "Stop": [
       {
         "type": "command",
-        "command": "npx @anthropic-community/claude-code-guardian hook session-end",
+        "command": "npx @anthropic-community/code-guardian hook session-end",
         "timeout": 15000,
         "onError": "ignore"
       }

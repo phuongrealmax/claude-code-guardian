@@ -40,7 +40,7 @@
   "homepage": "https://codeguardian.studio",
   "repository": {
     "type": "git",
-    "url": "https://github.com/phuongrealmax/claude-code-guardian"
+    "url": "https://github.com/phuongrealmax/code-guardian"
   },
   "publishConfig": {
     "access": "public"

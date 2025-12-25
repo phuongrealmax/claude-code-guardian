@@ -2,8 +2,8 @@
 name: ccg-rag
 description: "Use this skill for semantic code search and codebase understanding. CCG-RAG provides intelligent retrieval using code embeddings and knowledge graphs."
 allowed-tools:
-  - mcp__claude-code-guardian__rag_*
-  - mcp__claude-code-guardian__documents_*
+  - mcp__code-guardian__rag_*
+  - mcp__code-guardian__documents_*
 ---
 
 # CCG-RAG: Semantic Codebase Search

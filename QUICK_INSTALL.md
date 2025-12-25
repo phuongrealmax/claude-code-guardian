@@ -5,13 +5,13 @@
 SSH vào máy Ubuntu và chạy lệnh này:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/phuongrealmax/claude-code-guardian/master/deploy-ubuntu.sh | bash
+curl -fsSL https://raw.githubusercontent.com/phuongrealmax/code-guardian/master/deploy-ubuntu.sh | bash
 ```
 
 **Hoặc** tải script về và chạy:
 
 ```bash
-wget https://raw.githubusercontent.com/phuongrealmax/claude-code-guardian/master/deploy-ubuntu.sh
+wget https://raw.githubusercontent.com/phuongrealmax/code-guardian/master/deploy-ubuntu.sh
 chmod +x deploy-ubuntu.sh
 ./deploy-ubuntu.sh
 ```
@@ -28,8 +28,8 @@ sudo apt-get install -y nodejs git
 # 2. Clone repo
 sudo mkdir -p /opt
 cd /opt
-sudo git clone https://github.com/phuongrealmax/claude-code-guardian.git
-cd claude-code-guardian
+sudo git clone https://github.com/phuongrealmax/code-guardian.git
+cd code-guardian
 sudo chown -R $USER:$USER .
 
 # 3. Build
@@ -38,7 +38,7 @@ npm run build
 
 # 4. Tạo config
 cat > .env <<'EOF'
-CCG_PROJECT_ROOT=/opt/claude-code-guardian
+CCG_PROJECT_ROOT=/opt/code-guardian
 CCG_LOG_LEVEL=info
 CCG_API_PORT=3334
 CCG_API_HOST=0.0.0.0
@@ -54,10 +54,10 @@ After=network.target
 [Service]
 Type=simple
 User=$USER
-WorkingDirectory=/opt/claude-code-guardian
+WorkingDirectory=/opt/code-guardian
 Environment="NODE_ENV=production"
-EnvironmentFile=/opt/claude-code-guardian/.env
-ExecStart=/usr/bin/node /opt/claude-code-guardian/dist/api/index.js
+EnvironmentFile=/opt/code-guardian/.env
+ExecStart=/usr/bin/node /opt/code-guardian/dist/api/index.js
 Restart=always
 RestartSec=10
 

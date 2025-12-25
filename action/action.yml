@@ -1,11 +1,11 @@
 # Claude Code Guardian GitHub Action
-# https://github.com/anthropics/claude-code-guardian
+# https://github.com/anthropics/code-guardian
 #
 # This action runs CCG analysis on your codebase and generates
 # tamper-evident Proof Packs with TDI budget enforcement.
 #
 # Usage:
-#   - uses: anthropics/claude-code-guardian@v1
+#   - uses: anthropics/code-guardian@v1
 #     with:
 #       threshold: 70
 #       fail-on-budget-exceeded: true

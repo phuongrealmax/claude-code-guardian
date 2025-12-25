@@ -17,6 +17,6 @@
   },
   "enableAllProjectMcpServers": true,
   "enabledMcpjsonServers": [
-    "claude-code-guardian"
+    "code-guardian"
   ]
 }

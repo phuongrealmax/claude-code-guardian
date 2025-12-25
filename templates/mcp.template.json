@@ -1,8 +1,8 @@
 {
   "mcpServers": {
-    "claude-code-guardian": {
+    "code-guardian": {
       "command": "npx",
-      "args": ["@anthropic-community/claude-code-guardian"],
+      "args": ["@anthropic-community/code-guardian"],
       "env": {
         "CCG_PROJECT_ROOT": "${workspaceFolder}",
         "CCG_LOG_LEVEL": "info"

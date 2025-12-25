@@ -4,7 +4,7 @@
   "description": "Enterprise-grade MCP server with Memory, Guard, Multi-Agent, RAG, and Latent Chain Mode",
   "version": "3.0.0",
   "author": "anthropic-community",
-  "homepage": "https://github.com/anthropic-community/claude-code-guardian",
+  "homepage": "https://github.com/anthropic-community/code-guardian",
   "plugins": [
     {
       "name": "ccg-guardian",
@@ -12,7 +12,7 @@
       "version": "3.0.0",
       "source": {
         "type": "github",
-        "repo": "anthropic-community/claude-code-guardian",
+        "repo": "anthropic-community/code-guardian",
         "path": "plugins/ccg-guardian"
       },
       "skills": ["ccg-guardian", "ccg-latent", "ccg-rag"],

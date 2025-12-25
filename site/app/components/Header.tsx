@@ -40,7 +40,7 @@ export default function Header() {
             Pricing
           </Link>
           <a
-            href="https://github.com/phuongrealmax/claude-code-guardian"
+            href="https://github.com/phuongrealmax/code-guardian"
             className="nav-link"
             target="_blank"
             rel="noopener noreferrer"
@@ -81,7 +81,7 @@ export default function Header() {
           Pricing
         </Link>
         <a
-          href="https://github.com/phuongrealmax/claude-code-guardian"
+          href="https://github.com/phuongrealmax/code-guardian"
           className="nav-link"
           target="_blank"
           rel="noopener noreferrer"

@@ -469,10 +469,10 @@ describe('/ccg Template', () => {
     expect(fs.existsSync(templatePath)).toBe(true);
   });
 
-  it('should contain mcp__claude-code-guardian__ccg_run in template', () => {
+  it('should contain mcp__code-guardian__ccg_run in template', () => {
     const templatePath = path.join(process.cwd(), 'templates', 'commands', 'ccg-entrypoint.md');
     const content = fs.readFileSync(templatePath, 'utf-8');
-    expect(content).toContain('mcp__claude-code-guardian__ccg_run');
+    expect(content).toContain('mcp__code-guardian__ccg_run');
   });
 
   it('should contain ALWAYS call tool first instruction', () => {

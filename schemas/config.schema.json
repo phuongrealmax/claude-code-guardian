@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://raw.githubusercontent.com/anthropic-community/claude-code-guardian/main/schemas/config.schema.json",
+  "$id": "https://raw.githubusercontent.com/anthropic-community/code-guardian/main/schemas/config.schema.json",
   "title": "Claude Code Guardian Configuration",
   "description": "Configuration schema for Claude Code Guardian",
   "type": "object",

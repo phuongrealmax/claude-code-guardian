@@ -34,7 +34,7 @@ jobs:
         run: npm ci
 
       - name: Install CCG
-        run: npm install -g @anthropic-community/claude-code-guardian
+        run: npm install -g @anthropic-community/code-guardian
 
       - name: Initialize CCG
         run: ccg init --ci
@@ -75,7 +75,7 @@ jobs:
         run: npm ci
 
       - name: Install CCG
-        run: npm install -g @anthropic-community/claude-code-guardian
+        run: npm install -g @anthropic-community/code-guardian
 
       - name: Initialize CCG
         run: ccg init --profile minimal || true

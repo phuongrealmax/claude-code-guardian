@@ -1,7 +1,7 @@
 # AUTO_AGENT_RULES.md
 # Quy tắc vận hành Auto-Agent cho Claude Code + CCG
 
-Tài liệu này định nghĩa **cách Claude phải hành xử như một Auto-Agent** khi làm việc với MCP `claude-code-guardian` (CCG).
+Tài liệu này định nghĩa **cách Claude phải hành xử như một Auto-Agent** khi làm việc với MCP `code-guardian` (CCG).
 
 Mục tiêu:
 
@@ -17,7 +17,7 @@ Mục tiêu:
 
 ## 1. Phạm vi & Giả định
 
-- Claude đang chạy trong **Claude Code Extension** (VS Code) với MCP `claude-code-guardian`.
+- Claude đang chạy trong **Claude Code Extension** (VS Code) với MCP `code-guardian`.
 - Các module CCG đã **bật**:
   - `documents`, `thinking`, `memory`, `workflow`, `latent`, `testing`, `guard`.
 - User **không muốn** điều khiển từng bước; Claude phải chủ động tối đa, trừ khi:

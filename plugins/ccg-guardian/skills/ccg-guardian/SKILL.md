@@ -2,7 +2,7 @@
 name: ccg-guardian
 description: "Use this skill when working on code projects that need memory persistence, code validation, multi-agent coordination, or workflow tracking. Activates Claude Code Guardian MCP tools."
 allowed-tools:
-  - mcp__claude-code-guardian__*
+  - mcp__code-guardian__*
 ---
 
 # CCG Guardian Skill

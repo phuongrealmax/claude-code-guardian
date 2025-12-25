@@ -10,10 +10,10 @@ When user types `/ccg "<prompt>"`, you MUST call the MCP tool IMMEDIATELY. No ex
 
 ## Required Action — ALWAYS CALL TOOL FIRST
 
-**IMPORTANT:** You MUST call `mcp__claude-code-guardian__ccg_run` BEFORE any text response.
+**IMPORTANT:** You MUST call `mcp__code-guardian__ccg_run` BEFORE any text response.
 
 ```
-mcp__claude-code-guardian__ccg_run({
+mcp__code-guardian__ccg_run({
   prompt: "<the user's prompt>",
   translationMode: "auto",
   persistReport: true,
@@ -34,7 +34,7 @@ User: `/ccg "run quick analysis on src/"`
 
 You: *(immediately call the tool, no text before)*
 ```
-mcp__claude-code-guardian__ccg_run({ prompt: "run quick analysis on src/", translationMode: "auto", persistReport: true, dryRun: false })
+mcp__code-guardian__ccg_run({ prompt: "run quick analysis on src/", translationMode: "auto", persistReport: true, dryRun: false })
 ```
 
 ## Result Handling
@@ -94,4 +94,4 @@ If `taskStatus === "failed"`: Show error and suggest retry.
 
 ---
 
-When this command is invoked, IMMEDIATELY call `mcp__claude-code-guardian__ccg_run` with the provided prompt. Do NOT ask questions or provide explanations BEFORE the tool call.
+When this command is invoked, IMMEDIATELY call `mcp__code-guardian__ccg_run` with the provided prompt. Do NOT ask questions or provide explanations BEFORE the tool call.

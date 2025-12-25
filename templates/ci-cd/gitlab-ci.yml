@@ -26,7 +26,7 @@ ccg:validate:
   stage: validate
   script:
     - npm ci
-    - npm install -g @anthropic-community/claude-code-guardian
+    - npm install -g @anthropic-community/code-guardian
     - ccg init --ci
     - |
       # Validate changed files
@@ -106,7 +106,7 @@ ccg:test-analysis:
   stage: test
   script:
     - npm ci
-    - npm install -g @anthropic-community/claude-code-guardian
+    - npm install -g @anthropic-community/code-guardian
     - ccg check-tests ./tests --strict
   needs:
     - build
@@ -126,7 +126,7 @@ security:ccg-scan:
   stage: security
   script:
     - npm ci
-    - npm install -g @anthropic-community/claude-code-guardian
+    - npm install -g @anthropic-community/code-guardian
     - |
       # Run comprehensive security scan
       ccg guard --rules sql-injection,hardcoded-secrets,xss-vulnerability,command-injection,path-traversal,prompt-injection --strict

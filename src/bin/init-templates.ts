@@ -127,10 +127,10 @@ export function initializeProject(targetDir: string, options: InitOptions = {}):
       if (!existingMcp.mcpServers) {
         existingMcp.mcpServers = {};
       }
-      if (!existingMcp.mcpServers['claude-code-guardian']) {
-        existingMcp.mcpServers['claude-code-guardian'] = {
+      if (!existingMcp.mcpServers['code-guardian']) {
+        existingMcp.mcpServers['code-guardian'] = {
           command: 'npx',
-          args: ['@anthropic-community/claude-code-guardian'],
+          args: ['@anthropic-community/code-guardian'],
         };
         writeFileSync(mcpPath, JSON.stringify(existingMcp, null, 2));
         console.log(chalk.green('  Updated .mcp.json'));
@@ -170,7 +170,7 @@ function findTemplatesDir(): string {
     join(__dirname, '..', '..', 'templates'),
     join(__dirname, '..', 'templates'),
     join(process.cwd(), 'templates'),
-    join(process.cwd(), 'node_modules', '@anthropic-community', 'claude-code-guardian', 'templates'),
+    join(process.cwd(), 'node_modules', '@anthropic-community', 'code-guardian', 'templates'),
   ];
 
   for (const p of possiblePaths) {

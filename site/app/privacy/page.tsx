@@ -222,7 +222,7 @@ export default function Privacy() {
             <li>
               <strong>GitHub Issues:</strong>{' '}
               <a
-                href="https://github.com/phuongrealmax/claude-code-guardian/issues"
+                href="https://github.com/phuongrealmax/code-guardian/issues"
                 target="_blank"
                 rel="noopener"
               >

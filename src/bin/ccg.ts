@@ -160,8 +160,8 @@ program
         mcpConfig.mcpServers = {};
       }
 
-      if (!mcpConfig.mcpServers['claude-code-guardian']) {
-        mcpConfig.mcpServers['claude-code-guardian'] = {
+      if (!mcpConfig.mcpServers['code-guardian']) {
+        mcpConfig.mcpServers['code-guardian'] = {
           command: 'node',
           args: [join(cwd, 'node_modules', 'codeguardian-studio', 'dist', 'index.js')],
         };
@@ -285,24 +285,24 @@ function getDefaultHooksConfig(): Record<string, unknown> {
   return {
     hooks: {
       SessionStart: [
-        { type: 'command', command: 'npx @anthropic-community/claude-code-guardian hook session-start' },
+        { type: 'command', command: 'npx @anthropic-community/code-guardian hook session-start' },
       ],
       PreToolCall: [
         {
           type: 'command',
-          command: 'npx @anthropic-community/claude-code-guardian hook pre-tool $TOOL_NAME',
+          command: 'npx @anthropic-community/code-guardian hook pre-tool $TOOL_NAME',
           filter: { tools: ['write_file', 'edit_file', 'bash', 'create_file'] },
         },
       ],
       PostToolCall: [
         {
           type: 'command',
-          command: 'npx @anthropic-community/claude-code-guardian hook post-tool $TOOL_NAME',
+          command: 'npx @anthropic-community/code-guardian hook post-tool $TOOL_NAME',
           filter: { tools: ['write_file', 'edit_file', 'create_file'] },
         },
       ],
       Stop: [
-        { type: 'command', command: 'npx @anthropic-community/claude-code-guardian hook session-end' },
+        { type: 'command', command: 'npx @anthropic-community/code-guardian hook session-end' },
       ],
     },
   };

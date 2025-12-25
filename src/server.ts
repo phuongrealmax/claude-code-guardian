@@ -154,7 +154,7 @@ export async function createCCGServer(options: CCGServerOptions = {}): Promise<S
 
   // Create MCP Server
   const server = new Server(
-    { name: 'claude-code-guardian', version: '1.0.0' },
+    { name: 'code-guardian', version: '1.0.0' },
     { capabilities: { tools: {}, resources: {} } }
   );
 
