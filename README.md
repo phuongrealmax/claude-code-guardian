@@ -101,6 +101,10 @@ Open the generated report and start fixing hotspots (highest score first).
 - **Documents** - Documentation management
 - **Testing** - Test runner integration
 
+## Hosted deployment
+
+A hosted deployment is available on [Fronteir AI](https://fronteir.ai/mcp/phuongrealmax-code-guardian).
+
 ## Pricing
 
 | Plan | Price | Best For |
